@@ -92,6 +92,7 @@ Realtime:
 
 - Cada tarea es una issue de GitHub con etiqueta de módulo y el sprint como *milestone*.
 - Una rama por issue (`feat/<n>-<nombre>`, `fix/<n>-<nombre>`), PR con `Closes #<n>` y revisión de otra persona.
+- **Norma del equipo** (GitHub no puede forzarla: el repo es privado en una cuenta gratuita): nunca se hace push directo a `main` ni se fusiona una PR propia sin la aprobación de otra persona.
 - Commits: `tipo(modulo): descripción en español`, por ejemplo `feat(musica): votos para saltar canción`.
 - **Paso a paso**: no generar el proyecto entero de golpe. Trabajar una issue cada vez, desde la migración y la política RLS hasta el componente de UI.
 - Definición de hecho: funciona en Android real (y en web si aplica), maneja errores, tiene prueba de la lógica, RLS en tablas nuevas, PR revisada.
