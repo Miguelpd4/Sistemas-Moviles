@@ -12,14 +12,14 @@ Proyecto de la asignatura de Sistemas Móviles (Universidad de Córdoba), grupo 
   - iPhone: el sistema lee la pegatina y abre la web en Safari.
 - **Sin Expo Go**: el NFC necesita *development build* (`react-native-nfc-manager` + su config plugin).
 - **Música**: la cola vive en Supabase. Solo el conductor se autentica en Spotify (PKCE, Premium) y su móvil reproduce. Los pasajeros buscan a través de una Edge Function. Spotify no permite crear una Jam real por API ni da fragmentos de preview a apps nuevas: "adivina la canción" se hace con *seek* a un segundo aleatorio durante 10 s en el móvil del conductor. Modo desarrollo de Spotify: máximo 5 usuarios autorizados, 10 resultados por búsqueda.
-- **Gastos**: botón iniciar/finalizar viaje; distancia GPS × consumo (L/100 km) × precio (€/L), repartido **a partes iguales**, más gastos extra (peajes, parking) con foto del ticket. Pagos: enlace PayPal.me con importe, Bizum (teléfono + importe para copiar) y "marcar como pagado". Sin pasarela real (opcional: Stripe en modo pruebas).
+- **Gastos**: botón iniciar/finalizar viaje; distancia GPS × consumo (L/100 km) × precio (€/L), repartido **a partes iguales entre todos los ocupantes, conductor incluido** (el conductor también paga su parte), más gastos extra (peajes, parking) con foto del ticket. Pagos: enlace PayPal.me con importe, Bizum (teléfono + importe para copiar) y "marcar como pagado". Sin pasarela real (opcional: Stripe en modo pruebas).
 - **Seguridad vial**: el conductor solo ve el Modo conductor (pantalla única, oscura). Todo lo que administra la sala lo hace el **copiloto designado**.
 
 ## Stack obligatorio
 
 - React Native con **Expo** (SDK más reciente), **expo-router**.
 - **TypeScript estricto**. Nada de `any` salvo justificación en comentario.
-- Estilos: **NativeWind** (Tailwind) o `StyleSheet` optimizado.
+- Estilos: `StyleSheet` de React Native con los tokens de `src/theme/` (colores, espaciado, radios, tipografía). Sin NativeWind.
 - Backend: **Supabase** (PostgreSQL + RLS estricto, Auth anónimo para pasajeros y email para conductores, Realtime, Edge Functions, Storage).
 - Integraciones: Spotify Web API, `expo-location` + `expo-task-manager` (GPS en segundo plano), `react-native-nfc-manager`, `expo-image-picker`, `expo-speech`, `expo-notifications`, `react-native-maps`.
 - Datos abiertos: API REST de carburantes del Ministerio (precios), Wikipedia GeoSearch (trivial), Open-Meteo (tiempo).
@@ -41,6 +41,7 @@ src/
   services/spotify/      # llamadas vía Edge Functions
   services/nfc/          # lectura NFC
   lib/                   # utilidades puras (cálculo de gastos, formato)
+  theme/                 # tokens de diseño (colores, espaciado, radios, tipografía)
   types/                 # tipos compartidos y tipos generados de Supabase
 supabase/
   migrations/            # SQL con tablas y políticas RLS
