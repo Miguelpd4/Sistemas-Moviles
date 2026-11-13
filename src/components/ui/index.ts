@@ -1,6 +1,10 @@
 export { AppText } from './AppText';
+export { Avatar } from './Avatar';
 export { Button } from './Button';
+export { Card } from './Card';
+export { Notice } from './Notice';
 export { PlaceholderScreen } from './PlaceholderScreen';
 export { Screen } from './Screen';
 export { TabIcon, type IconName } from './TabIcon';
 export { tabBarOptions } from './tabBarOptions';
+export { TextField } from './TextField';

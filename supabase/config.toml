@@ -1,0 +1,48 @@
+# Configuración de Supabase local (npx supabase start).
+# Solo se fijan los ajustes que COPI necesita; el resto usa los valores por defecto de la CLI.
+# Si la CLI se queja de alguna clave, regenera el archivo con `npx supabase init --force`
+# y vuelve a poner los ajustes de [auth] de abajo.
+
+project_id = "copi"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[studio]
+enabled = true
+port = 54323
+
+[realtime]
+enabled = true
+
+[storage]
+enabled = true
+file_size_limit = "10MiB"
+
+[auth]
+enabled = true
+site_url = "http://localhost:8081"
+additional_redirect_urls = ["copi://", "http://localhost:8081"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+enable_signup = true
+# Los pasajeros entran sin registrarse (Supabase Auth anónimo)
+enable_anonymous_sign_ins = true
+
+[auth.email]
+enable_signup = true
+# Sin confirmación por correo, para no depender del email en la demo
+enable_confirmations = false
+
+[edge_runtime]
+enabled = true
+policy = "per_worker"

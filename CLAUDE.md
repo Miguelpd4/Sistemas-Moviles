@@ -24,6 +24,12 @@ Proyecto de la asignatura de Sistemas Móviles (Universidad de Córdoba), grupo 
 - Integraciones: Spotify Web API, `expo-location` + `expo-task-manager` (GPS en segundo plano), `react-native-nfc-manager`, `expo-image-picker`, `expo-speech`, `expo-notifications`, `react-native-maps`.
 - Datos abiertos: API REST de carburantes del Ministerio (precios), Wikipedia GeoSearch (trivial), Open-Meteo (tiempo).
 
+## Configuración
+
+- `app.config.ts` (no `app.json`): lee `EXPO_PUBLIC_WEB_URL` para registrar el App Link `https://<dominio>/c/...`.
+- Variables públicas en `src/config/env.ts`; nunca leer `process.env` en otros sitios.
+- Lo que solo existe en Android tiene una versión `.web.ts` (NFC, GPS, tokens de Spotify).
+
 ## Estructura de carpetas
 
 ```
@@ -66,11 +72,11 @@ docs/                    # requisitos, diseño, actas de sprint
 
 ## Base de datos (Supabase)
 
-Tablas: `profiles`, `cars` (con `nfc_code`), `sessions`, `session_members` (rol: conductor/copiloto/pasajero, asiento, avatar), `music_queue`, `queue_votes`, `trip_points`, `trip_metrics`, `game_rounds`, `game_answers`, `polls`, `poll_votes`, `expenses`, `payments`.
+Tablas: `profiles`, `cars` (con `nfc_code`), `sessions`, `session_members` (rol: conductor/copiloto/pasajero, asiento, avatar), `music_queue`, `queue_votes`, `trip_points`, `trip_metrics`, `fuel_price_cache`, `game_rounds`, `game_round_secrets`, `game_answers`, `expenses`, `payments`, `memories`. La especificación completa de cada sprint (SQL incluido) está en `docs/sprints/`.
 
 Reglas RLS:
 - Función `is_member(session_id)`: solo los miembros leen los datos de su sesión.
-- Unirse es una RPC `join_session(nfc_code)` *security definer* que comprueba sesión activa y modo de entrada; nunca un `insert` directo.
+- Unirse es una RPC `join_session(nfc_code, ...)` *security definer* que comprueba sesión activa y modo de entrada; nunca un `insert` directo. Funciones auxiliares de las políticas: `is_member`, `is_admin`, `is_host`, `shares_session`.
 - Solo el conductor escribe en `sessions`, `trip_points` y `trip_metrics`. Cada usuario escribe solo sus votos y respuestas.
 - La clave `service_role` y los secretos de Spotify solo existen en Edge Functions.
 
@@ -119,4 +125,5 @@ npx supabase start                 # Supabase local (Docker)
 npx supabase db push               # aplicar migraciones al proyecto remoto
 npx supabase functions deploy <f>  # desplegar una Edge Function
 npm test                           # pruebas con Jest
+npm run test:db                    # pruebas pgTAP de RLS y RPC (Supabase local)
 ```

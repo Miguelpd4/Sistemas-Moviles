@@ -1,9 +1,17 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { memo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { memo, useState } from 'react';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
-import { AppText, Screen, type IconName } from '@/components/ui';
+import { ScanSheet } from '@/components/entrada/ScanSheet';
+import { CurrentTripCard } from '@/components/inicio/CurrentTripCard';
+import { AppText, Card, Notice, Screen, type IconName } from '@/components/ui';
+import { useAuth } from '@/hooks/useAuth';
+import { useCurrentTrip } from '@/hooks/useCurrentTrip';
+import { useNfcScan } from '@/hooks/useNfcScan';
+import { errorMessage } from '@/lib/errors';
+import { getMyCar } from '@/services/supabase/cars';
+import { startSession } from '@/services/supabase/sessions';
 import { colors, radius, spacing } from '@/theme';
 
 type ActionCardProps = {
@@ -12,6 +20,7 @@ type ActionCardProps = {
   icon: IconName;
   background: string;
   foreground: string;
+  busy?: boolean;
   onPress: () => void;
 };
 
@@ -21,17 +30,20 @@ const ActionCard = memo(function ActionCard({
   icon,
   background,
   foreground,
+  busy = false,
   onPress,
 }: ActionCardProps) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${title}. ${subtitle}`}
+      accessibilityState={{ busy }}
+      disabled={busy}
       onPress={onPress}
       style={({ pressed }) => [
         styles.card,
         { backgroundColor: background },
-        pressed && styles.pressed,
+        (pressed || busy) && styles.pressed,
       ]}
     >
       <Ionicons name={icon} size={40} color={foreground} />
@@ -47,16 +59,77 @@ const ActionCard = memo(function ActionCard({
   );
 });
 
-// TODO(ui): tarjeta "Viaje en curso", "Último viaje" y "Deudas pendientes" según docs/diseno/1_inicio.jpg.
+/** Inicio (S1-08): viaje en curso, Crear viaje y Unirse. */
 export default function InicioScreen() {
+  const { user, profile, isAnonymous } = useAuth();
+  const { trip } = useCurrentTrip();
+  const nfc = useNfcScan();
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showScan, setShowScan] = useState(false);
+  const [showJoinHelp, setShowJoinHelp] = useState(false);
+
+  const createTrip = async () => {
+    setError(null);
+    // Sin cuenta o sin coche, Mi coche explica qué falta.
+    if (isAnonymous || user === null) {
+      router.push('/mi-coche');
+      return;
+    }
+    setCreating(true);
+    try {
+      const car = await getMyCar(user.id);
+      if (car === null) {
+        router.push('/mi-coche');
+        return;
+      }
+      const sessionId = await startSession(car.id);
+      router.push({ pathname: '/conductor', params: { sessionId } });
+    } catch (err) {
+      setError(errorMessage(err, 'No se ha podido crear el viaje.'));
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const scan = async () => {
+    setShowScan(true);
+    const code = await nfc.start();
+    if (code !== null) {
+      setShowScan(false);
+      router.push({ pathname: '/c/[carCode]', params: { carCode: code } });
+    }
+  };
+
+  const join = () => {
+    setError(null);
+    if (Platform.OS === 'android' && nfc.supported) {
+      void scan();
+    } else {
+      setShowJoinHelp((visible) => !visible);
+    }
+  };
+
+  const closeScan = () => {
+    nfc.cancel();
+    nfc.clearError();
+    setShowScan(false);
+  };
+
+  const greeting = profile?.display_name ? `Hola, ${profile.display_name}` : 'Hola';
+
   return (
     <Screen>
       <View style={styles.header}>
-        <AppText color={colors.textSecondary}>Buen viaje siempre</AppText>
+        <AppText color={colors.textSecondary}>Toca. Sube. Viaja.</AppText>
         <AppText variant="display" accessibilityRole="header">
-          Hola
+          {greeting}
         </AppText>
       </View>
+
+      {trip ? <CurrentTripCard trip={trip} /> : null}
+      {error !== null ? <Notice message={error} /> : null}
+
       <View style={styles.actions}>
         <ActionCard
           title="Crear viaje"
@@ -64,7 +137,8 @@ export default function InicioScreen() {
           icon="car-outline"
           background={colors.inverse}
           foreground={colors.textOnInverse}
-          onPress={() => router.push('/conductor')}
+          busy={creating}
+          onPress={createTrip}
         />
         <ActionCard
           title="Unirse"
@@ -72,9 +146,24 @@ export default function InicioScreen() {
           icon="qr-code-outline"
           background={colors.primary}
           foreground={colors.textOnPrimary}
-          onPress={() => router.push('/c/DEMO')}
+          onPress={join}
         />
       </View>
+
+      {showJoinHelp ? (
+        <Card>
+          <AppText variant="heading">Cómo unirte</AppText>
+          <AppText>Toca la pegatina del coche con el móvil desbloqueado, o escanea el QR del conductor con la cámara.</AppText>
+        </Card>
+      ) : null}
+
+      <ScanSheet
+        visible={showScan}
+        scanning={nfc.scanning}
+        error={nfc.error}
+        onCancel={closeScan}
+        onRetry={() => void scan()}
+      />
     </Screen>
   );
 }

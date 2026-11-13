@@ -1,4 +1,4 @@
-import { formatEuros } from '../format';
+import { formatDuration, formatEuros, formatKm } from '../format';
 
 describe('formatEuros', () => {
   it('formatea céntimos con coma decimal y símbolo de euro', () => {
@@ -21,5 +21,22 @@ describe('formatEuros', () => {
 
   it('rechaza importes no finitos', () => {
     expect(() => formatEuros(Number.NaN)).toThrow(RangeError);
+  });
+});
+
+describe('formatKm', () => {
+  it('usa metros por debajo de 1 km y km con un decimal por encima', () => {
+    expect(formatKm(0)).toBe('0 m');
+    expect(formatKm(950)).toBe('950 m');
+    expect(formatKm(12_345)).toBe('12,3 km');
+    expect(formatKm(1000)).toBe('1,0 km');
+  });
+});
+
+describe('formatDuration', () => {
+  it('formatea segundos, minutos y horas', () => {
+    expect(formatDuration(59)).toBe('59 s');
+    expect(formatDuration(480)).toBe('8 min');
+    expect(formatDuration(3900)).toBe('1 h 05 min');
   });
 });

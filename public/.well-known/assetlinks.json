@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "es.uco.copi",
+      "sha256_cert_fingerprints": [
+        "SUSTITUIR:POR:LA:HUELLA:SHA256:DEL:CERTIFICADO:DE:DEPURACION"
+      ]
+    }
+  }
+]
