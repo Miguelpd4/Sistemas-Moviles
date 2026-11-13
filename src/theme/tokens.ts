@@ -27,7 +27,13 @@ export const colors = {
   success: '#2F8F5B',
   successSoft: '#DDF1E5',
   danger: '#C62828',
+  dangerSoft: '#FBE4E4',
   border: '#DEDAD4',
+  /** Fondo oscuro detrás de las hojas modales. */
+  overlay: 'rgba(0, 0, 0, 0.4)',
+  /** El QR siempre negro sobre blanco para que lo lea cualquier cámara. */
+  qrDark: '#000000',
+  qrLight: '#FFFFFF',
 } as const;
 
 /** Modo conductor: fondo negro, tipografía muy grande, acentos naranja. */
@@ -38,6 +44,25 @@ export const driverColors = {
   textSecondary: '#B5B5B5',
   accent: '#FF6A1A',
 } as const;
+
+/**
+ * Fondos de los 12 personajes predefinidos (src/lib/avatars.ts).
+ * Todos tienen contraste de al menos 3:1 con el icono blanco.
+ */
+export const avatarPalette = [
+  '#E8540A',
+  '#7C3AED',
+  '#2563EB',
+  '#0F766E',
+  '#15803D',
+  '#B45309',
+  '#BE185D',
+  '#1D4ED8',
+  '#C2410C',
+  '#4338CA',
+  '#047857',
+  '#9D174D',
+] as const;
 
 export const spacing = {
   xs: 4,
