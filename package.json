@@ -62,6 +62,9 @@
   "private": true,
   "jest": {
     "preset": "jest-expo",
+    "setupFiles": [
+      "<rootDir>/jest.setup.ts"
+    ],
     "testPathIgnorePatterns": [
       "/node_modules/",
       "/supabase/"

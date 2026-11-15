@@ -10,7 +10,7 @@ import {
   SeatStep,
   WelcomeStep,
 } from '@/components/entrada/JoinSteps';
-import { PlaceholderScreen, Screen } from '@/components/ui';
+import { Button, EmptyState, Screen, ScreenHeader } from '@/components/ui';
 import { useJoinFlow } from '@/hooks/useJoinFlow';
 import { normalizeCarCode } from '@/lib/carCode';
 import { RPC_MESSAGES } from '@/lib/errors';
@@ -25,10 +25,15 @@ export default function PegatinaScreen() {
 
   if (code === null) {
     return (
-      <PlaceholderScreen
-        title="Pegatina no válida"
-        description="No hemos reconocido el código de este coche. Prueba a tocar la pegatina otra vez o escanea el QR del conductor."
-      />
+      <Screen>
+        <ScreenHeader title="Pegatina no válida" back />
+        <EmptyState
+          icon="help-circle-outline"
+          title="No reconocemos este coche"
+          description="Prueba a tocar la pegatina otra vez o escanea el QR del conductor."
+          action={<Button label="Volver al inicio" variant="secondary" onPress={() => router.replace('/')} />}
+        />
+      </Screen>
     );
   }
   return <JoinFlow code={code} />;

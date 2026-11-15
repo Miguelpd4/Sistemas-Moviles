@@ -27,11 +27,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   icon: './assets/images/icon.png',
   // copi:// lo usa Spotify para volver a la app (copi://spotify-auth)
   scheme: 'copi',
-  userInterfaceStyle: 'light',
+  userInterfaceStyle: 'automatic',
   android: {
     package: 'es.uco.copi',
     adaptiveIcon: {
-      backgroundColor: '#F6F4F0',
+      backgroundColor: '#0E0F11',
       foregroundImage: './assets/images/android-icon-foreground.png',
       backgroundImage: './assets/images/android-icon-background.png',
       monochromeImage: './assets/images/android-icon-monochrome.png',
@@ -57,7 +57,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-splash-screen',
       {
-        backgroundColor: '#F6F4F0',
+        backgroundColor: '#0E0F11',
         image: './assets/images/splash-icon.png',
         imageWidth: 76,
       },

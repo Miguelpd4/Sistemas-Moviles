@@ -6,11 +6,11 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "copi",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "android": {
       "package": "es.uco.copi",
       "adaptiveIcon": {
-        "backgroundColor": "#F6F4F0",
+        "backgroundColor": "#0E0F11",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -27,7 +27,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F6F4F0",
+          "backgroundColor": "#0E0F11",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }

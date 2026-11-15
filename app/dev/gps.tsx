@@ -16,7 +16,7 @@ import {
   startTracking,
   stopTracking,
 } from '@/services/location/tracking';
-import { colors } from '@/theme';
+import { useTheme } from '@/theme';
 
 /** Prueba técnica de GPS en segundo plano y precio del combustible (S1-10). Solo en desarrollo. */
 export default function DevGpsScreen() {
@@ -25,6 +25,7 @@ export default function DevGpsScreen() {
 }
 
 function DevGps() {
+  const { colors } = useTheme();
   const [tracking, setTracking] = useState(false);
   const [points, setPoints] = useState<GeoPoint[]>([]);
   const [error, setError] = useState<string | null>(null);

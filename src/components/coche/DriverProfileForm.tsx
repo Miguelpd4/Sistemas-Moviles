@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { AppText, Button, Card, Notice, TextField } from '@/components/ui';
+import { Button, FormSection, Notice, TextField } from '@/components/ui';
 import { useAuth } from '@/hooks/useAuth';
 import { errorMessage } from '@/lib/errors';
 import { validateProfileFields, type DriverFormErrors } from '@/lib/profileForm';
@@ -32,15 +32,12 @@ export function DriverProfileForm() {
   };
 
   return (
-    <Card>
-      <AppText variant="heading" accessibilityRole="header">
-        Tus datos de conductor
-      </AppText>
+    <FormSection title="Tus datos de conductor" description="Los pasajeros los usan para pagarte su parte.">
       <TextField label="Tu nombre" value={displayName} onChangeText={setDisplayName} error={errors.displayName} maxLength={30} />
       <TextField label="Teléfono para Bizum (opcional)" value={phone} onChangeText={setPhone} error={errors.phone} keyboardType="phone-pad" />
       <TextField label="Usuario de PayPal.me (opcional)" value={paypalUsername} onChangeText={setPaypal} error={errors.paypalUsername} autoCapitalize="none" />
       {message !== null ? <Notice message={message.text} tone={message.tone} /> : null}
-      <Button label="Guardar mis datos" variant="secondary" onPress={save} loading={saving} />
-    </Card>
+      <Button label="Guardar mis datos" variant="secondary" icon="save-outline" onPress={save} loading={saving} />
+    </FormSection>
   );
 }
