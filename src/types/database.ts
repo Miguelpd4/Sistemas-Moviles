@@ -1,5 +1,5 @@
 /**
- * Tipos de la base de datos (migraciones 0001 del Sprint 1).
+ * Tipos de la base de datos (migraciones del Sprint 1 y coche_modelo).
  *
  * Escritos a mano con el mismo formato que genera Supabase. En cuanto tengáis Supabase local,
  * sustituid este archivo por el generado:
@@ -53,6 +53,11 @@ export type Database = {
           consumption_l_100km: number;
           fuel_type: string;
           seats: number;
+          make: string | null;
+          model: string | null;
+          version: string | null;
+          color: string | null;
+          model_image_url: string | null;
           created_at: string;
         };
         Insert: {
@@ -64,6 +69,11 @@ export type Database = {
           consumption_l_100km: number;
           fuel_type: string;
           seats?: number;
+          make?: string | null;
+          model?: string | null;
+          version?: string | null;
+          color?: string | null;
+          model_image_url?: string | null;
           created_at?: string;
         };
         Update: {
@@ -75,6 +85,11 @@ export type Database = {
           consumption_l_100km?: number;
           fuel_type?: string;
           seats?: number;
+          make?: string | null;
+          model?: string | null;
+          version?: string | null;
+          color?: string | null;
+          model_image_url?: string | null;
           created_at?: string;
         };
         Relationships: [

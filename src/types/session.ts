@@ -11,8 +11,18 @@ export type SessionPreview = {
   status: SessionStatus;
   join_mode: JoinMode;
   car_name: string;
+  car_make: string | null;
+  car_model: string | null;
+  car_version: string | null;
+  car_color: string | null;
+  /** Foto propia del coche (ruta en el cubo «coches»). */
+  car_photo_path: string | null;
+  /** Foto del modelo (Wikipedia). */
+  car_image_url: string | null;
   seats: number;
   driver_name: string;
+  driver_avatar_kind: string;
+  driver_avatar_value: string;
   taken_seats: number[];
   my_status: MemberStatus | null;
 };
