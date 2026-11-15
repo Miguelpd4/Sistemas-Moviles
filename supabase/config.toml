@@ -46,3 +46,10 @@ enable_confirmations = false
 [edge_runtime]
 enabled = true
 policy = "per_worker"
+
+# Las funciones comprueban ellas mismas la sesión del usuario (_shared/auth.ts).
+[functions.fuel-price]
+verify_jwt = false
+
+[functions.spotify-search]
+verify_jwt = false

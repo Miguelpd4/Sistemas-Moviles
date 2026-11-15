@@ -5,10 +5,20 @@ import { StyleSheet, View } from 'react-native';
 import { AppText, Button, Card } from '@/components/ui';
 import { env } from '@/config/env';
 import { carStickerUrl } from '@/lib/carCode';
-import { colors, radius, spacing } from '@/theme';
+import { radius, spacing, useTheme } from '@/theme';
+
+import { LicensePlate } from './LicensePlate';
+
+const STEPS = [
+  'Instala la app gratuita NFC Tools.',
+  'Escribir → Añadir un registro → URL / URI.',
+  'Pega la dirección de arriba y pulsa Escribir.',
+  'Acerca el móvil a la pegatina NTAG213 o NTAG215.',
+] as const;
 
 /** Código de la pegatina, su URL y cómo grabarla (S1-07). */
 export function StickerCard({ code }: { code: string }) {
+  const { colors } = useTheme();
   const url = carStickerUrl(env.webUrl, code);
   const [copied, setCopied] = useState(false);
 
@@ -20,33 +30,51 @@ export function StickerCard({ code }: { code: string }) {
 
   return (
     <Card>
-      <AppText variant="heading" accessibilityRole="header">
-        Tu pegatina
-      </AppText>
-      <View style={styles.codeBox}>
-        <AppText variant="caption" color={colors.textSecondary}>
-          Código del coche
+      <View style={styles.head}>
+        <AppText variant="heading" accessibilityRole="header">
+          Tu pegatina
         </AppText>
-        <AppText variant="display" selectable accessibilityLabel={`Código ${code.split('').join(' ')}`}>
-          {code}
+        <AppText color={colors.textSecondary}>Graba esta dirección en la pegatina NFC y pégala en el coche.</AppText>
+      </View>
+      <View style={styles.plate}>
+        <LicensePlate code={code} size="lg" />
+      </View>
+      <View style={[styles.url, { backgroundColor: colors.background }]}>
+        <AppText selectable variant="bodyStrong" numberOfLines={2}>
+          {url}
         </AppText>
       </View>
-      <AppText selectable color={colors.textSecondary}>
-        {url}
-      </AppText>
-      <Button label={copied ? 'URL copiada' : 'Copiar URL'} variant="secondary" onPress={copy} />
+      <Button
+        label={copied ? 'Dirección copiada' : 'Copiar dirección'}
+        icon={copied ? 'checkmark' : 'copy-outline'}
+        variant="secondary"
+        onPress={copy}
+      />
       <View style={styles.steps}>
         <AppText variant="bodyStrong">Cómo grabarla</AppText>
-        <AppText>1. Instala la app gratuita NFC Tools.</AppText>
-        <AppText>2. Escribir → Añadir un registro → URL / URI.</AppText>
-        <AppText>3. Pega la URL de arriba y pulsa Escribir.</AppText>
-        <AppText>4. Acerca el móvil a la pegatina NTAG213 o NTAG215.</AppText>
+        {STEPS.map((step, index) => (
+          <View key={step} style={styles.step}>
+            <View style={[styles.number, { backgroundColor: colors.primarySoft }]}>
+              <AppText variant="caption" color={colors.primaryText}>
+                {index + 1}
+              </AppText>
+            </View>
+            <AppText variant="label" color={colors.textSecondary} style={styles.stepText}>
+              {step}
+            </AppText>
+          </View>
+        ))}
       </View>
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  codeBox: { backgroundColor: colors.background, borderRadius: radius.md, padding: spacing.md, alignItems: 'center' },
-  steps: { gap: spacing.xs },
+  head: { gap: 2 },
+  plate: { alignItems: 'center', paddingVertical: spacing.md },
+  url: { borderRadius: radius.sm, padding: spacing.md },
+  steps: { gap: spacing.sm, marginTop: spacing.xs },
+  step: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' },
+  number: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  stepText: { flex: 1 },
 });

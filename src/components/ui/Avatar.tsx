@@ -4,7 +4,7 @@ import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { getPresetAvatar, type AvatarKind } from '@/lib/avatars';
-import { colors } from '@/theme';
+import { darkColors } from '@/theme';
 
 type Props = {
   kind: AvatarKind | string;
@@ -38,13 +38,13 @@ function AvatarBase({ kind, value, size = 48, label }: Props) {
       accessibilityLabel={label}
       accessibilityRole={label !== undefined ? 'image' : undefined}
     >
-      <Ionicons name={avatar.icon} size={size * 0.55} color={colors.textOnPrimary} />
+      <Ionicons name={avatar.icon} size={size * 0.55} color={darkColors.textOnPrimary} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  photo: { backgroundColor: colors.surfaceStrong },
+  photo: { backgroundColor: darkColors.surfaceStrong },
   preset: { alignItems: 'center', justifyContent: 'center' },
 });
 

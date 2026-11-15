@@ -16,6 +16,10 @@ function isObject(value: Json): value is { [key: string]: Json | undefined } {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function textOrNull(value: Json | undefined): string | null {
+  return typeof value === 'string' && value !== '' ? value : null;
+}
+
 /** Comprueba la forma de lo que devuelve get_session_preview. */
 export function parseSessionPreview(value: Json): SessionPreview {
   if (!isObject(value) || typeof value.session_id !== 'string' || !Array.isArray(value.taken_seats)) {
@@ -26,8 +30,16 @@ export function parseSessionPreview(value: Json): SessionPreview {
     status: String(value.status) as SessionStatus,
     join_mode: value.join_mode === 'aprobacion' ? 'aprobacion' : 'libre',
     car_name: String(value.car_name ?? ''),
+    car_make: textOrNull(value.car_make),
+    car_model: textOrNull(value.car_model),
+    car_version: textOrNull(value.car_version),
+    car_color: textOrNull(value.car_color),
+    car_photo_path: textOrNull(value.car_photo_path),
+    car_image_url: textOrNull(value.car_image_url),
     seats: Number(value.seats ?? 5),
     driver_name: String(value.driver_name ?? 'el conductor'),
+    driver_avatar_kind: String(value.driver_avatar_kind ?? 'preset'),
+    driver_avatar_value: String(value.driver_avatar_value ?? 'avatar-01'),
     taken_seats: value.taken_seats.filter((seat): seat is number => typeof seat === 'number'),
     my_status: typeof value.my_status === 'string' ? (value.my_status as MemberStatus) : null,
   };
@@ -72,6 +84,17 @@ export async function getSessionMembers(sessionId: string): Promise<SessionMembe
   return data as SessionMember[];
 }
 
+/** Lo que se necesita para dibujar el coche (foto propia, foto del modelo o silueta). */
+export type CarLook = {
+  name: string;
+  make: string | null;
+  model: string | null;
+  version: string | null;
+  color: string | null;
+  photoPath: string | null;
+  imageUrl: string | null;
+};
+
 export type SessionWithCar = {
   id: string;
   status: SessionStatus;
@@ -79,12 +102,13 @@ export type SessionWithCar = {
   carName: string;
   nfcCode: string;
   seats: number;
+  car: CarLook;
 };
 
 export async function getSessionWithCar(sessionId: string): Promise<SessionWithCar> {
   const { data, error } = await supabase
     .from('sessions')
-    .select('id, status, host_id, cars ( name, nfc_code, seats )')
+    .select('id, status, host_id, cars ( name, nfc_code, seats, make, model, version, color, photo_path, model_image_url )')
     .eq('id', sessionId)
     .single();
   if (error) throw toAppError(error, 'No se ha podido cargar el viaje.');
@@ -97,6 +121,15 @@ export async function getSessionWithCar(sessionId: string): Promise<SessionWithC
     carName: car.name,
     nfcCode: car.nfc_code,
     seats: car.seats,
+    car: {
+      name: car.name,
+      make: car.make,
+      model: car.model,
+      version: car.version,
+      color: car.color,
+      photoPath: car.photo_path,
+      imageUrl: car.model_image_url,
+    },
   };
 }
 

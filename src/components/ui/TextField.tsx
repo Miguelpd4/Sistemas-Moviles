@@ -1,29 +1,44 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
-import { colors, radius, spacing, typography } from '@/theme';
+import { radius, spacing, typography, useTheme } from '@/theme';
 
 import { AppText } from './AppText';
 
 type Props = Omit<TextInputProps, 'style'> & {
   label: string;
   error?: string | undefined;
-  hint?: string;
+  hint?: string | undefined;
 };
 
-/** Campo de texto con etiqueta, pista y error debajo. */
-function TextFieldBase({ label, error, hint, ...rest }: Props) {
+/** Campo de texto con etiqueta, pista y error debajo. El borde se pone naranja al escribir. */
+function TextFieldBase({ label, error, hint, onFocus, onBlur, ...rest }: Props) {
+  const { colors, scheme } = useTheme();
+  const [focused, setFocused] = useState(false);
+  const borderColor = error !== undefined ? colors.danger : focused ? colors.primary : colors.border;
+
   return (
     <View style={styles.wrapper}>
-      <AppText variant="caption" color={colors.textSecondary}>
+      <AppText variant="label" color={colors.textSecondary}>
         {label}
       </AppText>
       <TextInput
         accessibilityLabel={label}
         accessibilityHint={error ?? hint}
-        placeholderTextColor={colors.textSecondary}
+        placeholderTextColor={colors.textTertiary}
         maxFontSizeMultiplier={1.6}
-        style={[styles.input, error !== undefined && styles.inputError]}
+        selectionColor={colors.primary}
+        cursorColor={colors.primary}
+        keyboardAppearance={scheme}
+        onFocus={(event) => {
+          setFocused(true);
+          onFocus?.(event);
+        }}
+        onBlur={(event) => {
+          setFocused(false);
+          onBlur?.(event);
+        }}
+        style={[styles.input, { color: colors.text, backgroundColor: colors.background, borderColor }]}
         {...rest}
       />
       {error !== undefined ? (
@@ -31,7 +46,7 @@ function TextFieldBase({ label, error, hint, ...rest }: Props) {
           {error}
         </AppText>
       ) : hint !== undefined ? (
-        <AppText variant="caption" color={colors.textSecondary}>
+        <AppText variant="caption" color={colors.textTertiary}>
           {hint}
         </AppText>
       ) : null}
@@ -40,19 +55,15 @@ function TextFieldBase({ label, error, hint, ...rest }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrapper: { gap: spacing.xs },
+  wrapper: { gap: spacing.xs + 2 },
   input: {
-    ...typography.body,
-    color: colors.text,
-    backgroundColor: colors.surface,
+    ...typography.bodyStrong,
     borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: 1.5,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm + 4,
-    minHeight: 48,
+    minHeight: 54,
   },
-  inputError: { borderColor: colors.danger },
 });
 
 export const TextField = memo(TextFieldBase);

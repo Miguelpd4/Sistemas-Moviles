@@ -9,7 +9,7 @@ import { useSpotifyLogin } from '@/services/spotify/auth';
 import { getCurrentlyPlaying, pause, playTrack } from '@/services/spotify/player';
 import { searchTracks } from '@/services/spotify/search';
 import { expireTokensForTesting, getValidAccessToken } from '@/services/spotify/tokens';
-import { colors, spacing } from '@/theme';
+import { spacing, useTheme } from '@/theme';
 import type { SpotifyTrack } from '@/types/spotify';
 
 /** Prueba técnica de Spotify (S1-09). Solo existe en desarrollo. */
@@ -19,6 +19,7 @@ export default function DevSpotifyScreen() {
 }
 
 function DevSpotify() {
+  const { colors } = useTheme();
   const login = useSpotifyLogin();
   const [query, setQuery] = useState('');
   const [tracks, setTracks] = useState<SpotifyTrack[]>([]);

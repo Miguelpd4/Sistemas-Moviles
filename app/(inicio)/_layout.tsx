@@ -1,30 +1,30 @@
 import { Tabs } from 'expo-router/js-tabs';
 
-import { TabIcon, tabBarOptions } from '@/components/ui';
+import { TabIcon, useTabBarOptions } from '@/components/ui';
 
 export default function InicioLayout() {
+  const options = useTabBarOptions();
   return (
-    <Tabs screenOptions={tabBarOptions}>
+    <Tabs screenOptions={options}>
       <Tabs.Screen
         name="index"
-        options={{ title: 'Inicio', tabBarIcon: (p) => <TabIcon name="home" {...p} /> }}
+        options={{ title: 'Inicio', tabBarIcon: (p) => <TabIcon name="home" outline="home-outline" {...p} /> }}
       />
-      {/* TODO(entrada): ocultar con href: null si el usuario no es conductor. */}
       <Tabs.Screen
         name="mi-coche"
-        options={{ title: 'Mi coche', tabBarIcon: (p) => <TabIcon name="car-outline" {...p} /> }}
+        options={{ title: 'Mi coche', tabBarIcon: (p) => <TabIcon name="car-sport" outline="car-sport-outline" {...p} /> }}
       />
       <Tabs.Screen
         name="historial"
-        options={{ title: 'Historial', tabBarIcon: (p) => <TabIcon name="time-outline" {...p} /> }}
+        options={{ title: 'Historial', tabBarIcon: (p) => <TabIcon name="time" outline="time-outline" {...p} /> }}
       />
       <Tabs.Screen
         name="cuentas"
-        options={{ title: 'Cuentas', tabBarIcon: (p) => <TabIcon name="stats-chart-outline" {...p} /> }}
+        options={{ title: 'Cuentas', tabBarIcon: (p) => <TabIcon name="wallet" outline="wallet-outline" {...p} /> }}
       />
       <Tabs.Screen
         name="perfil"
-        options={{ title: 'Perfil', tabBarIcon: (p) => <TabIcon name="person-outline" {...p} /> }}
+        options={{ title: 'Perfil', tabBarIcon: (p) => <TabIcon name="person-circle" outline="person-circle-outline" {...p} /> }}
       />
     </Tabs>
   );
