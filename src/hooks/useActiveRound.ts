@@ -12,10 +12,11 @@ const MUSIC_GAMES = new Set(['dj']);
 const SECRET_GAMES = new Set(['trivial', 'adivina_cancion', 'quien_la_puso']);
 
 /**
- * La ronda de juego en pantalla (S2-09): la activa o revelada más reciente, quién ha respondido
+ * La ronda de juego en pantalla (S2-09), o la de DJ con `kind = 'dj'` (#20): la activa o revelada
+ * más reciente, quién ha respondido
  * (por Broadcast) y, una vez revelada, todas las respuestas y la solución si la hay.
  */
-export function useActiveRound() {
+export function useActiveRound(kind: 'pantalla' | 'dj' = 'pantalla') {
   const { sessionId, on, myId } = useSession();
   const [rounds, setRounds] = useState<RoundRow[]>([]);
   const [answeredBy, setAnsweredBy] = useState<ReadonlySet<string>>(new Set());
@@ -51,8 +52,11 @@ export function useActiveRound() {
   useEffect(() => on('status', (status) => status === 'conectado' && void reload()), [on, reload]);
 
   const round = useMemo(
-    () => rounds.find((item) => !MUSIC_GAMES.has(item.game) && (item.status === 'activa' || item.status === 'revelada')) ?? null,
-    [rounds],
+    () =>
+      rounds.find(
+        (item) => (kind === 'dj' ? item.game === 'dj' : !MUSIC_GAMES.has(item.game)) && (item.status === 'activa' || item.status === 'revelada'),
+      ) ?? null,
+    [rounds, kind],
   );
   const roundId = round?.id ?? null;
   const roundStatus = round?.status ?? null;

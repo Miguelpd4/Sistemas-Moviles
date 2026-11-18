@@ -48,6 +48,19 @@ export async function getSongClip(roundId: string): Promise<Json> {
   return data;
 }
 
+/** Turnos de DJ (#20): empieza una ronda con los pasajeros por orden de asiento. */
+export async function startDjRound(sessionId: string): Promise<string> {
+  const { data, error } = await supabase.rpc('start_dj_round', { p_session_id: sessionId });
+  if (error) throw toAppError(error, 'No se ha podido empezar la ronda de DJ.');
+  return data;
+}
+
+/** Salta el turno de quien no elige (conductor, copiloto o quien empezó la ronda). */
+export async function skipDjTurn(roundId: string): Promise<void> {
+  const { error } = await supabase.rpc('skip_dj_turn', { p_round_id: roundId });
+  if (error) throw toAppError(error, 'No se ha podido saltar el turno.');
+}
+
 export async function submitAnswer(roundId: string, answer: Json): Promise<void> {
   const { error } = await supabase.rpc('submit_answer', { p_round_id: roundId, p_answer: answer });
   if (error) throw toAppError(error, 'No se ha podido enviar tu respuesta.');

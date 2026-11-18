@@ -233,6 +233,7 @@ export type Database = {
           created_at: string;
           started_at: string | null;
           ended_at: string | null;
+          dj_round_id: string | null;
         };
         Insert: {
           id?: string;
@@ -247,6 +248,7 @@ export type Database = {
           created_at?: string;
           started_at?: string | null;
           ended_at?: string | null;
+          dj_round_id?: string | null;
         };
         Update: {
           id?: string;
@@ -261,6 +263,7 @@ export type Database = {
           created_at?: string;
           started_at?: string | null;
           ended_at?: string | null;
+          dj_round_id?: string | null;
         };
         Relationships: [];
       };
@@ -471,6 +474,19 @@ export type Database = {
       start_guess_who: { Args: { p_session_id: string; p_seconds?: number }; Returns: string };
       start_song_quiz: { Args: { p_session_id: string; p_seconds?: number }; Returns: string };
       get_song_clip: { Args: { p_round_id: string }; Returns: Json };
+      start_dj_round: { Args: { p_session_id: string }; Returns: string };
+      add_dj_song: {
+        Args: {
+          p_round_id: string;
+          p_track_id: string;
+          p_title: string;
+          p_artist: string;
+          p_album_art_url: string | null;
+          p_duration_ms: number;
+        };
+        Returns: string;
+      };
+      skip_dj_turn: { Args: { p_round_id: string }; Returns: undefined };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
