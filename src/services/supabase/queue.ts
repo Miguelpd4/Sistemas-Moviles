@@ -34,6 +34,30 @@ export async function addToQueue(sessionId: string, userId: string, track: Spoti
   if (error) throw toAppError(error, 'No se ha podido añadir la canción.');
 }
 
+/** Turnos de DJ (#20): añade la canción de mi turno (el servidor comprueba que me toca). */
+export async function addDjSong(roundId: string, track: SpotifyTrack): Promise<void> {
+  const { error } = await supabase.rpc('add_dj_song', {
+    p_round_id: roundId,
+    p_track_id: track.id,
+    p_title: track.title,
+    p_artist: track.artist,
+    p_album_art_url: track.albumArtUrl,
+    p_duration_ms: Math.max(1, Math.round(track.durationMs)),
+  });
+  if (error) throw toAppError(error, 'No se ha podido añadir la canción.');
+}
+
+/** Canciones de una ronda de DJ, en cualquier estado y por orden de llegada. */
+export async function getDjSongs(roundId: string): Promise<QueueRow[]> {
+  const { data, error } = await supabase
+    .from('music_queue')
+    .select('*')
+    .eq('dj_round_id', roundId)
+    .order('created_at', { ascending: true });
+  if (error) throw toAppError(error, 'No se han podido cargar las canciones de la ronda.');
+  return data;
+}
+
 export async function removeFromQueue(id: string): Promise<void> {
   const { error } = await supabase.from('music_queue').delete().eq('id', id);
   if (error) throw toAppError(error, 'No se ha podido quitar la canción.');
