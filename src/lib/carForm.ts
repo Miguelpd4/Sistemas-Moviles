@@ -1,4 +1,5 @@
 /** Validación del formulario del coche (S1-07). Lógica pura, sin React. */
+import type { CarColor } from './carColors';
 
 export type FuelType = 'gasolina_95' | 'gasolina_98' | 'diesel' | 'glp';
 
@@ -15,13 +16,20 @@ export const MAX_CONSUMPTION = 30;
 
 export type CarFormValues = {
   name: string;
+  /** Marca y modelo: libres, con sugerencias del catálogo (src/lib/carCatalog.ts). */
+  make: string;
+  model: string;
+  /** Versión o generación, opcional: «V», «2019», «Sportourer»… */
+  version: string;
+  /** Clave de src/lib/carColors.ts, o null si no se elige. */
+  color: CarColor | null;
   /** Tal como lo escribe el usuario: "6,5" o "6.5". */
   consumption: string;
   fuelType: FuelType | null;
   seats: number;
 };
 
-export type CarFormField = 'name' | 'consumption' | 'fuelType' | 'seats';
+export type CarFormField = 'name' | 'make' | 'model' | 'version' | 'consumption' | 'fuelType' | 'seats';
 export type CarFormErrors = Partial<Record<CarFormField, string>>;
 
 /** "6,5" → 6.5. Acepta coma o punto. Redondea a 1 decimal (como la columna numeric(4,1)). */
@@ -38,6 +46,10 @@ export function validateCarForm(values: CarFormValues): CarFormErrors {
   if (name.length < 1 || name.length > 40) {
     errors.name = 'Escribe un nombre de 1 a 40 caracteres.';
   }
+  if (values.make.trim().length > 30) errors.make = 'La marca puede tener como mucho 30 caracteres.';
+  if (values.model.trim().length > 40) errors.model = 'El modelo puede tener como mucho 40 caracteres.';
+  if (values.model.trim() !== '' && values.make.trim() === '') errors.make = 'Escribe también la marca.';
+  if (values.version.trim().length > 40) errors.version = 'La versión puede tener como mucho 40 caracteres.';
   const consumption = parseConsumption(values.consumption);
   if (consumption === null || consumption <= 0 || consumption > MAX_CONSUMPTION) {
     errors.consumption = 'Escribe el consumo en litros cada 100 km, por ejemplo 6,5.';

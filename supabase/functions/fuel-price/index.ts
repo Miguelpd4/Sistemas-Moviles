@@ -1,7 +1,10 @@
-// S1-10 · Prueba técnica: precio medio del combustible en las 10 gasolineras más cercanas,
-// con la API REST de carburantes del Ministerio. En el Sprint 2 se añade la caché en base de datos.
-// Petición: POST { "lat": 37.88, "lon": -4.78, "fuel": "diesel" }
+// S2-08 · Precio medio del combustible en las 10 gasolineras más cercanas, con la API REST de
+// carburantes del Ministerio. Un precio se reutiliza 12 horas para la misma zona (1 decimal de
+// latitud y longitud, unos 11 km) y el mismo combustible, guardado en fuel_price_cache.
+// Petición: POST { "lat": 37.88, "lon": -4.78, "fuel": "diesel" } → { priceEurL, cached, ... }
 // Despliegue: npx supabase functions deploy fuel-price
+import { createClient } from 'npm:@supabase/supabase-js@2';
+
 import { isAuthenticated } from '../_shared/auth.ts';
 import { corsHeaders, json } from '../_shared/cors.ts';
 
@@ -37,6 +40,29 @@ function distanceKm(lat1: number, lon1: number, lat2: number, lon2: number): num
 // Caché en memoria del listado (el archivo pesa varios MB y cambia pocas veces al día).
 let cache: { stations: Station[]; fetchedAt: number } | null = null;
 const CACHE_MS = 60 * 60 * 1000;
+/** Validez de un precio guardado en fuel_price_cache. */
+const PRICE_TTL_MS = 12 * 60 * 60 * 1000;
+
+// La tabla fuel_price_cache no tiene políticas: solo se lee y escribe con la clave de servicio.
+const admin = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '', {
+  auth: { persistSession: false },
+});
+
+const cacheKey = (fuel: string, lat: number, lon: number) => `${fuel}:${lat.toFixed(1)},${lon.toFixed(1)}`;
+
+async function readCachedPrice(key: string): Promise<number | null> {
+  const { data, error } = await admin.from('fuel_price_cache').select('price_eur_l, fetched_at').eq('cache_key', key).maybeSingle();
+  if (error || !data) return null;
+  if (Date.now() - new Date(data.fetched_at).getTime() > PRICE_TTL_MS) return null;
+  return Number(data.price_eur_l);
+}
+
+async function saveCachedPrice(key: string, price: number): Promise<void> {
+  const { error } = await admin
+    .from('fuel_price_cache')
+    .upsert({ cache_key: key, price_eur_l: price, fetched_at: new Date().toISOString() });
+  if (error) console.error('fuel-price · no se ha podido guardar en la caché', error.message);
+}
 
 async function loadStations(): Promise<{ stations: Station[]; cached: boolean; ms: number }> {
   if (cache && Date.now() - cache.fetchedAt < CACHE_MS) return { stations: cache.stations, cached: true, ms: 0 };
@@ -61,6 +87,10 @@ Deno.serve(async (req) => {
       return json({ error: 'Faltan lat, lon o fuel (gasolina_95, gasolina_98, diesel, glp).' }, 400);
     }
     const field = FIELD_BY_FUEL[fuel];
+    const key = cacheKey(fuel, lat, lon);
+
+    const cachedPrice = await readCachedPrice(key);
+    if (cachedPrice !== null) return json({ priceEurL: cachedPrice, cached: true, stations: 10, maxDistanceKm: 0, sourceMs: 0 });
 
     const { stations, cached, ms } = await loadStations();
     const nearest = stations

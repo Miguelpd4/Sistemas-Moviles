@@ -4,7 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText, Avatar } from '@/components/ui';
 import { AVATARS, type AvatarKind } from '@/lib/avatars';
-import { colors, radius, spacing } from '@/theme';
+import { radius, spacing, useTheme } from '@/theme';
 
 type Props = {
   kind: AvatarKind;
@@ -16,6 +16,8 @@ type Props = {
 
 /** Rejilla de 12 personajes más «Usar una foto». */
 function AvatarPickerBase({ kind, value, onSelect, onPickPhoto, uploading }: Props) {
+  const { colors } = useTheme();
+  const ring = (selected: boolean) => ({ borderColor: selected ? colors.primary : 'transparent' });
   return (
     <View style={styles.grid}>
       {AVATARS.map((avatar, index) => {
@@ -27,7 +29,7 @@ function AvatarPickerBase({ kind, value, onSelect, onPickPhoto, uploading }: Pro
             accessibilityLabel={`Personaje ${index + 1}`}
             accessibilityState={{ selected }}
             onPress={() => onSelect('preset', avatar.id)}
-            style={[styles.option, selected && styles.selected]}
+            style={[styles.option, ring(selected)]}
           >
             <Avatar kind="preset" value={avatar.id} size={52} />
           </Pressable>
@@ -39,14 +41,14 @@ function AvatarPickerBase({ kind, value, onSelect, onPickPhoto, uploading }: Pro
         accessibilityState={{ selected: kind === 'foto', busy: uploading }}
         onPress={onPickPhoto}
         disabled={uploading}
-        style={[styles.option, kind === 'foto' && styles.selected]}
+        style={[styles.option, ring(kind === 'foto')]}
       >
         {uploading ? (
           <ActivityIndicator color={colors.primary} />
         ) : kind === 'foto' ? (
           <Avatar kind="foto" value={value} size={52} />
         ) : (
-          <View style={styles.photoButton}>
+          <View style={[styles.photoButton, { backgroundColor: colors.surfaceStrong }]}>
             <Ionicons name="camera-outline" size={24} color={colors.text} />
             <AppText variant="caption">Foto</AppText>
           </View>
@@ -67,12 +69,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  selected: { borderColor: colors.primary },
   photoButton: {
     width: 52,
     height: 52,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -1,7 +1,7 @@
 import { AppError } from '@/lib/errors';
 import type { PlaybackState, SpotifyDevice } from '@/types/spotify';
 
-import { getValidAccessToken } from './tokens';
+import { getValidAccessToken, loadTokens, refreshTokens } from './tokens';
 
 /** Control de la reproducción en el móvil del conductor con la Web API de Spotify (S1-09). */
 
@@ -9,9 +9,10 @@ const API = 'https://api.spotify.com/v1/me/player';
 
 type Init = { method?: 'GET' | 'PUT' | 'POST'; body?: unknown; query?: string };
 
-async function call(path: string, { method = 'GET', body, query }: Init = {}): Promise<Response> {
+async function call(path: string, init: Init = {}, retried = false): Promise<Response> {
+  const { method = 'GET', body, query } = init;
   const token = await getValidAccessToken();
-  const url = `${API}${path}${query ? `?${query}` : ''}`;
+  const url = path.startsWith('https://') ? path : `${API}${path}${query ? `?${query}` : ''}`;
   let response: Response;
   try {
     response = await fetch(url, {
@@ -24,6 +25,14 @@ async function call(path: string, { method = 'GET', body, query }: Init = {}): P
     });
   } catch (error) {
     throw new AppError('No hay conexión con Spotify. Revisa internet.', { details: error });
+  }
+  if (response.status === 401 && !retried) {
+    // El token ha caducado antes de lo previsto: se renueva y se reintenta una vez (S2-06).
+    const tokens = await loadTokens();
+    if (tokens) {
+      await refreshTokens(tokens);
+      return call(path, init, true);
+    }
   }
   if (response.status === 401) {
     throw new AppError('La sesión de Spotify ha caducado. Vuelve a conectar tu cuenta.', { code: 'SPOTIFY_NOT_CONNECTED' });
@@ -98,4 +107,11 @@ export async function getCurrentlyPlaying(): Promise<PlaybackState | null> {
     durationMs: json.item?.duration_ms ?? 0,
     isPlaying: json.is_playing ?? false,
   };
+}
+
+/** Nombre de la cuenta conectada (para mostrarlo en el Modo conductor). */
+export async function getAccountName(): Promise<string | null> {
+  const response = await call('https://api.spotify.com/v1/me');
+  const json = (await response.json()) as { display_name?: string | null; id?: string };
+  return json.display_name ?? json.id ?? null;
 }

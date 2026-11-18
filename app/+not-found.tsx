@@ -1,19 +1,17 @@
 import { router } from 'expo-router';
-import { View } from 'react-native';
 
-import { AppText, Button, Screen } from '@/components/ui';
-import { colors, spacing } from '@/theme';
+import { Button, EmptyState, Screen, ScreenHeader } from '@/components/ui';
 
 export default function NotFoundScreen() {
   return (
     <Screen>
-      <AppText variant="title" accessibilityRole="header">
-        Esta pantalla no existe
-      </AppText>
-      <AppText color={colors.textSecondary}>Puede que el enlace esté mal escrito.</AppText>
-      <View style={{ marginTop: spacing.md }}>
-        <Button label="Volver al inicio" onPress={() => router.replace('/')} />
-      </View>
+      <ScreenHeader title="Página no encontrada" back />
+      <EmptyState
+        icon="compass-outline"
+        title="Esta pantalla no existe"
+        description="Puede que el enlace esté mal escrito o que el viaje ya haya terminado."
+        action={<Button label="Volver al inicio" onPress={() => router.replace('/')} />}
+      />
     </Screen>
   );
 }

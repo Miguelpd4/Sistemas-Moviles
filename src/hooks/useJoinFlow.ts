@@ -62,8 +62,9 @@ export function useJoinFlow(code: string) {
   useEffect(() => {
     if (state.step !== 'pendiente' || sessionId === null || userId === null) return;
 
+    // Canal privado: solo esta persona puede escuchar su canal de espera (migración sala_musica_viaje).
     const channel = supabase
-      .channel(uniqueChannelName(`entrada:${sessionId}:${userId}`))
+      .channel(uniqueChannelName(`entrada:${sessionId}:${userId}`), { config: { private: true } })
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'session_members', filter: `session_id=eq.${sessionId}` },
@@ -71,8 +72,12 @@ export function useJoinFlow(code: string) {
           const row = payload.new as { user_id?: string; status?: MemberStatus };
           if (row.user_id === userId && row.status) dispatch({ type: 'status_changed', status: row.status });
         },
-      )
-      .subscribe();
+      );
+    void supabase.auth
+      .getSession()
+      .then(({ data }) => supabase.realtime.setAuth(data.session?.access_token ?? null))
+      .catch(() => undefined)
+      .finally(() => channel.subscribe());
 
     const poll = setInterval(() => {
       getSessionPreview(code)

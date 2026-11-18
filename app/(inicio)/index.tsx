@@ -1,88 +1,92 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
-import { memo, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useState, type ComponentProps } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
+import { CarHero } from '@/components/coche/CarHero';
 import { ScanSheet } from '@/components/entrada/ScanSheet';
 import { CurrentTripCard } from '@/components/inicio/CurrentTripCard';
-import { AppText, Card, Notice, Screen, type IconName } from '@/components/ui';
+import { AppText, Avatar, Button, Glow, Notice, Screen } from '@/components/ui';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentTrip } from '@/hooks/useCurrentTrip';
+import { useMyCar } from '@/hooks/useMyCar';
 import { useNfcScan } from '@/hooks/useNfcScan';
 import { errorMessage } from '@/lib/errors';
-import { getMyCar } from '@/services/supabase/cars';
+import { carLook } from '@/services/supabase/cars';
 import { startSession } from '@/services/supabase/sessions';
-import { colors, radius, spacing } from '@/theme';
+import { radius, spacing, useStyles, useTheme, type Palette } from '@/theme';
 
-type ActionCardProps = {
-  title: string;
-  subtitle: string;
-  icon: IconName;
-  background: string;
-  foreground: string;
-  busy?: boolean;
-  onPress: () => void;
-};
+type MciName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-const ActionCard = memo(function ActionCard({
-  title,
-  subtitle,
-  icon,
-  background,
-  foreground,
-  busy = false,
-  onPress,
-}: ActionCardProps) {
+const HOW_IT_WORKS: readonly { icon: MciName; title: string; text: string }[] = [
+  { icon: 'nfc-variant', title: 'Toca la pegatina', text: 'Acerca el móvil a la pegatina del coche. Sin cuentas ni descargas.' },
+  { icon: 'seat-passenger', title: 'Elige tu asiento', text: 'Tu nombre, un personaje y dónde vas sentado.' },
+  { icon: 'cash-multiple', title: 'Viajad y repartid', text: 'Música y juegos por el camino; al llegar, cada uno ve lo que le toca.' },
+];
+
+function today(): string {
+  const text = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+type TileProps = { icon: MciName; title: string; subtitle: string; onPress: () => void };
+
+function Tile({ icon, title, subtitle, onPress }: TileProps) {
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${title}. ${subtitle}`}
-      accessibilityState={{ busy }}
-      disabled={busy}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.card,
-        { backgroundColor: background },
-        (pressed || busy) && styles.pressed,
-      ]}
+      style={({ pressed }) => [styles.tile, { backgroundColor: pressed ? colors.surfaceStrong : colors.surface }]}
     >
-      <Ionicons name={icon} size={40} color={foreground} />
-      <View style={styles.cardText}>
-        <AppText variant="title" color={foreground}>
-          {title}
-        </AppText>
-        <AppText variant="caption" color={foreground}>
+      <View style={styles.tileIcon}>
+        <MaterialCommunityIcons name={icon} size={24} color={colors.primary} />
+      </View>
+      <View>
+        <AppText variant="heading">{title}</AppText>
+        <AppText variant="caption" color={colors.textSecondary}>
           {subtitle}
         </AppText>
       </View>
     </Pressable>
   );
-});
+}
 
-/** Inicio (S1-08): viaje en curso, Crear viaje y Unirse. */
+/** Inicio (S1-08): viaje en curso, el coche del conductor con «Crear viaje» y «Unirse». */
 export default function InicioScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
   const { user, profile, isAnonymous } = useAuth();
+  const { aviso } = useLocalSearchParams<{ aviso?: string }>();
   const { trip } = useCurrentTrip();
+  const { car, reload: reloadCar } = useMyCar();
   const nfc = useNfcScan();
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showScan, setShowScan] = useState(false);
   const [showJoinHelp, setShowJoinHelp] = useState(false);
 
+  // Al volver de Mi coche se ve el coche recién registrado o editado.
+  useFocusEffect(
+    useCallback(() => {
+      void reloadCar();
+    }, [reloadCar]),
+  );
+
+  const isDriver = !isAnonymous && user !== null;
+  const driverTrip = trip?.role === 'conductor' ? trip : null;
+
   const createTrip = async () => {
     setError(null);
-    // Sin cuenta o sin coche, Mi coche explica qué falta.
-    if (isAnonymous || user === null) {
+    if (car === null) {
       router.push('/mi-coche');
       return;
     }
     setCreating(true);
     try {
-      const car = await getMyCar(user.id);
-      if (car === null) {
-        router.push('/mi-coche');
-        return;
-      }
       const sessionId = await startSession(car.id);
       router.push({ pathname: '/conductor', params: { sessionId } });
     } catch (err) {
@@ -116,68 +120,196 @@ export default function InicioScreen() {
     setShowScan(false);
   };
 
-  const greeting = profile?.display_name ? `Hola, ${profile.display_name}` : 'Hola';
+  const firstName = profile?.display_name?.split(' ')[0];
 
   return (
     <Screen>
       <View style={styles.header}>
-        <AppText color={colors.textSecondary}>Toca. Sube. Viaja.</AppText>
-        <AppText variant="display" accessibilityRole="header">
-          {greeting}
-        </AppText>
+        <View style={styles.headerText}>
+          <AppText variant="label" color={colors.primaryText}>
+            {today()}
+          </AppText>
+          <AppText variant="display" accessibilityRole="header" numberOfLines={1}>
+            {firstName ? `Hola, ${firstName}` : 'Hola'}
+          </AppText>
+        </View>
+        {profile ? (
+          <Pressable accessibilityRole="button" accessibilityLabel="Ir a tu perfil" onPress={() => router.push('/perfil')}>
+            <Avatar kind={profile.avatar_kind} value={profile.avatar_value} size={48} />
+          </Pressable>
+        ) : null}
       </View>
 
+      {aviso === 'fuera' && trip === null ? <Notice tone="info" message="Ya no estás en ese viaje." /> : null}
       {trip ? <CurrentTripCard trip={trip} /> : null}
       {error !== null ? <Notice message={error} /> : null}
 
-      <View style={styles.actions}>
-        <ActionCard
-          title="Crear viaje"
-          subtitle="Comparte gastos y viaja juntos"
-          icon="car-outline"
-          background={colors.inverse}
-          foreground={colors.textOnInverse}
-          busy={creating}
-          onPress={createTrip}
-        />
-        <ActionCard
-          title="Unirse"
-          subtitle="Toca la pegatina o escanea QR"
-          icon="qr-code-outline"
-          background={colors.primary}
-          foreground={colors.textOnPrimary}
-          onPress={join}
-        />
-      </View>
-
-      {showJoinHelp ? (
-        <Card>
-          <AppText variant="heading">Cómo unirte</AppText>
-          <AppText>Toca la pegatina del coche con el móvil desbloqueado, o escanea el QR del conductor con la cámara.</AppText>
-        </Card>
+      {isDriver && car !== null && driverTrip === null ? (
+        <CarHero car={carLook(car)} code={car.nfc_code} overline="Tu coche" extra={`${car.seats} plazas`}>
+          <Button label="Crear viaje" icon="add" size="lg" loading={creating} onPress={createTrip} />
+        </CarHero>
       ) : null}
 
-      <ScanSheet
-        visible={showScan}
-        scanning={nfc.scanning}
-        error={nfc.error}
-        onCancel={closeScan}
-        onRetry={() => void scan()}
-      />
+      {isDriver && car === null ? (
+        <View style={styles.promo}>
+          <Glow cy={0.1} cx={0.85} />
+          <MaterialCommunityIcons name="steering" size={40} color={colors.primary} />
+          <AppText variant="title">Registra tu coche</AppText>
+          <AppText color={colors.textSecondary}>
+            Marca, modelo y color. Te damos el código de la pegatina y ya puedes crear viajes.
+          </AppText>
+          <Button label="Ir a Mi coche" icon="arrow-forward" onPress={() => router.push('/mi-coche')} />
+        </View>
+      ) : null}
+
+      {isDriver ? (
+        <View style={styles.tiles}>
+          <Tile icon="nfc-variant" title="Unirse" subtitle="Pegatina o QR" onPress={join} />
+          <Tile
+            icon="history"
+            title="Historial"
+            subtitle="Tus viajes"
+            onPress={() => router.push('/historial')}
+          />
+        </View>
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Unirse a un coche. Toca la pegatina o escanea el QR del conductor."
+          onPress={join}
+          style={({ pressed }) => [styles.joinHero, pressed && styles.pressed]}
+        >
+          <Glow cy={0.15} />
+          <View style={styles.nfcHalo}>
+            <View style={styles.nfcCore}>
+              <MaterialCommunityIcons name="nfc-variant" size={44} color={colors.textOnPrimary} />
+            </View>
+          </View>
+          <AppText variant="display" style={styles.center}>
+            Súbete a un coche
+          </AppText>
+          <AppText color={colors.textSecondary} style={styles.center}>
+            Toca la pegatina del coche con el móvil o escanea el QR del conductor.
+          </AppText>
+          <View style={styles.joinButton}>
+            <AppText variant="heading" color={colors.textOnPrimary}>
+              Unirse
+            </AppText>
+            <Ionicons name="arrow-forward" size={20} color={colors.textOnPrimary} />
+          </View>
+        </Pressable>
+      )}
+
+      {showJoinHelp ? (
+        <Notice
+          tone="info"
+          message="Con el móvil desbloqueado, acerca la parte de arriba a la pegatina del coche. También puedes escanear con la cámara el QR que aparece en el móvil del conductor."
+        />
+      ) : null}
+
+      {!isDriver && trip === null ? (
+        <View style={styles.how}>
+          <AppText variant="title" accessibilityRole="header">
+            Cómo funciona
+          </AppText>
+          {HOW_IT_WORKS.map((step, index) => (
+            <View key={step.title} style={styles.step}>
+              <View style={styles.stepIcon}>
+                <MaterialCommunityIcons name={step.icon} size={24} color={colors.primary} />
+              </View>
+              <View style={styles.stepText}>
+                <AppText variant="heading">
+                  {index + 1}. {step.title}
+                </AppText>
+                <AppText variant="label" color={colors.textSecondary}>
+                  {step.text}
+                </AppText>
+              </View>
+            </View>
+          ))}
+          <Button label="¿Conduces? Registra tu coche" variant="ghost" icon="car-sport-outline" onPress={() => router.push('/mi-coche')} />
+        </View>
+      ) : null}
+
+      <ScanSheet visible={showScan} scanning={nfc.scanning} error={nfc.error} onCancel={closeScan} onRetry={() => void scan()} />
     </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  header: { gap: spacing.xs, marginBottom: spacing.sm },
-  actions: { flexDirection: 'row', gap: spacing.md },
-  card: {
-    flex: 1,
-    minHeight: 180,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    justifyContent: 'space-between',
-  },
-  cardText: { gap: spacing.xs },
-  pressed: { opacity: 0.9, transform: [{ scale: 0.98 }] },
-});
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
+    header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.sm, marginBottom: spacing.xs },
+    headerText: { flex: 1, gap: 2 },
+    promo: {
+      gap: spacing.sm,
+      padding: spacing.lg - 4,
+      borderRadius: radius.lg,
+      backgroundColor: c.surfaceRaised,
+      borderWidth: 1,
+      borderColor: c.border,
+      overflow: 'hidden',
+    },
+    tiles: { flexDirection: 'row', gap: spacing.sm + 4 },
+    tile: { flex: 1, minHeight: 124, borderRadius: radius.lg, padding: spacing.md, justifyContent: 'space-between' },
+    tileIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: radius.sm,
+      backgroundColor: c.primarySoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    joinHero: {
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.xl,
+      paddingBottom: spacing.lg,
+      borderRadius: radius.lg,
+      backgroundColor: c.surfaceRaised,
+      borderWidth: 1,
+      borderColor: c.border,
+      overflow: 'hidden',
+    },
+    pressed: { opacity: 0.92 },
+    nfcHalo: {
+      width: 136,
+      height: 136,
+      borderRadius: 68,
+      backgroundColor: c.primarySoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.md,
+    },
+    nfcCore: {
+      width: 88,
+      height: 88,
+      borderRadius: 44,
+      backgroundColor: c.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    center: { textAlign: 'center' },
+    joinButton: {
+      marginTop: spacing.md,
+      alignSelf: 'stretch',
+      minHeight: 60,
+      borderRadius: radius.md,
+      backgroundColor: c.primary,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.sm,
+    },
+    how: { gap: spacing.md, marginTop: spacing.md },
+    step: { flexDirection: 'row', gap: spacing.md, alignItems: 'center' },
+    stepIcon: {
+      width: 52,
+      height: 52,
+      borderRadius: radius.sm,
+      backgroundColor: c.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    stepText: { flex: 1, gap: 2 },
+  });

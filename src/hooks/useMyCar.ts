@@ -38,7 +38,7 @@ export function useMyCar() {
     async (values: CarFormValues, newPhotoUri: string | null): Promise<Car> => {
       if (userId === null) throw new AppError('Inicia sesión como conductor para guardar tu coche.');
       const photoPath = newPhotoUri !== null ? await uploadCarPhoto(userId, newPhotoUri) : (car?.photo_path ?? null);
-      const saved = car ? await updateCar(car.id, values, photoPath) : await createCar(userId, values, photoPath);
+      const saved = car ? await updateCar(car, values, photoPath) : await createCar(userId, values, photoPath);
       setCar(saved);
       return saved;
     },

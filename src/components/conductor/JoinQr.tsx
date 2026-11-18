@@ -4,7 +4,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { AppText } from '@/components/ui';
 import { env } from '@/config/env';
 import { carStickerUrl } from '@/lib/carCode';
-import { colors, driverColors, radius, spacing } from '@/theme';
+import { darkColors, driverColors, radius, spacing } from '@/theme';
 
 /** QR con la misma URL que la pegatina, para quien no tenga NFC (S1-08). */
 export function JoinQr({ nfcCode, size = 220 }: { nfcCode: string; size?: number }) {
@@ -17,7 +17,7 @@ export function JoinQr({ nfcCode, size = 220 }: { nfcCode: string; size?: number
         accessibilityRole="image"
         accessibilityLabel="Código QR para entrar en el viaje"
       >
-        <QRCode value={url} size={size} color={colors.qrDark} backgroundColor={colors.qrLight} ecl="M" />
+        <QRCode value={url} size={size} color={darkColors.qrDark} backgroundColor={darkColors.qrLight} ecl="M" />
       </View>
       <AppText variant="heading" color={driverColors.text}>
         Toca la pegatina o escanea
@@ -29,5 +29,5 @@ export function JoinQr({ nfcCode, size = 220 }: { nfcCode: string; size?: number
 const styles = StyleSheet.create({
   wrapper: { alignItems: 'center', gap: spacing.md },
   // Fondo blanco y margen: los lectores de QR necesitan contraste y zona en blanco alrededor.
-  qr: { backgroundColor: colors.qrLight, padding: spacing.md, borderRadius: radius.md },
+  qr: { backgroundColor: darkColors.qrLight, padding: spacing.md, borderRadius: radius.md },
 });

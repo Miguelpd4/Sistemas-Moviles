@@ -4,13 +4,15 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui';
 import type { CurrentTrip } from '@/services/supabase/sessions';
-import { colors, radius, spacing } from '@/theme';
+import { radius, spacing, useTheme } from '@/theme';
 
 /** «Viaje en curso en el coche de X»: lleva a la sala o al Modo conductor (S1-08). */
 export function CurrentTripCard({ trip }: { trip: CurrentTrip }) {
+  const { colors } = useTheme();
   const isDriver = trip.role === 'conductor';
-  const title = isDriver ? 'Tienes un viaje abierto' : `Viaje en curso en el coche de ${trip.driverName}`;
-  const subtitle = isDriver ? `${trip.carName} · Volver al Modo conductor` : `${trip.carName} · Volver a la sala`;
+  const live = trip.status === 'en_curso';
+  const title = isDriver ? trip.carName : `En el coche de ${trip.driverName}`;
+  const action = isDriver ? 'Volver al Modo conductor' : 'Volver a la sala';
 
   const open = () => {
     if (isDriver) {
@@ -23,20 +25,27 @@ export function CurrentTripCard({ trip }: { trip: CurrentTrip }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${title}. ${subtitle}`}
+      accessibilityLabel={`${live ? 'Viaje en marcha' : 'Viaje abierto'}. ${title}. ${action}`}
       onPress={open}
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.card, { backgroundColor: pressed ? colors.primaryPressed : colors.primary }]}
     >
-      <View style={styles.dot} />
+      <View style={styles.pulse}>
+        <View style={[styles.dot, { backgroundColor: colors.textOnPrimary }]} />
+      </View>
       <View style={styles.text}>
-        <AppText variant="bodyStrong" color={colors.textOnPrimary}>
+        <AppText variant="caption" color={colors.textOnPrimary}>
+          {live ? 'Viaje en marcha' : 'Viaje abierto'}
+        </AppText>
+        <AppText variant="heading" color={colors.textOnPrimary} numberOfLines={1}>
           {title}
         </AppText>
-        <AppText variant="caption" color={colors.textOnPrimary}>
-          {subtitle}
+        <AppText variant="bodyStrong" color={colors.textOnPrimary}>
+          {action}
         </AppText>
       </View>
-      <Ionicons name="chevron-forward" size={24} color={colors.textOnPrimary} />
+      <View style={[styles.arrow, { backgroundColor: colors.textOnPrimary }]}>
+        <Ionicons name="arrow-forward" size={22} color={colors.primary} />
+      </View>
     </Pressable>
   );
 }
@@ -46,11 +55,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: colors.primary,
     borderRadius: radius.lg,
     padding: spacing.lg,
   },
-  pressed: { opacity: 0.9 },
-  dot: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.textOnPrimary },
+  pulse: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dot: { width: 10, height: 10, borderRadius: 5 },
   text: { flex: 1, gap: 2 },
+  arrow: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

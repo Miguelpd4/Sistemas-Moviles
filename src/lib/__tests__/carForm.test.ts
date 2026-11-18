@@ -19,7 +19,16 @@ describe('parseConsumption', () => {
 });
 
 describe('validateCarForm', () => {
-  const valid: CarFormValues = { name: 'Ibiza', consumption: '6,5', fuelType: 'diesel', seats: 5 };
+  const valid: CarFormValues = {
+    name: 'El Ibiza de Ana',
+    make: 'Seat',
+    model: 'Ibiza',
+    version: '',
+    color: 'rojo',
+    consumption: '6,5',
+    fuelType: 'diesel',
+    seats: 5,
+  };
 
   it('un formulario correcto no tiene errores', () => {
     expect(hasErrors(validateCarForm(valid))).toBe(false);
@@ -33,5 +42,11 @@ describe('validateCarForm', () => {
     expect(validateCarForm({ ...valid, fuelType: null }).fuelType).toBeDefined();
     expect(validateCarForm({ ...valid, seats: 1 }).seats).toBeDefined();
     expect(validateCarForm({ ...valid, seats: 10 }).seats).toBeDefined();
+    expect(validateCarForm({ ...valid, make: '' }).make).toBeDefined();
+    expect(validateCarForm({ ...valid, version: 'x'.repeat(41) }).version).toBeDefined();
+  });
+
+  it('marca, modelo, versión y color son opcionales', () => {
+    expect(hasErrors(validateCarForm({ ...valid, make: '', model: '', version: '', color: null }))).toBe(false);
   });
 });
