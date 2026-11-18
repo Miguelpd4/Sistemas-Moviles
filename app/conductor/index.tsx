@@ -1,42 +1,51 @@
+import { useKeepAwake } from 'expo-keep-awake';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LicensePlate } from '@/components/coche/LicensePlate';
+import { DriverStats } from '@/components/conductor/DriverStats';
 import { JoinQr } from '@/components/conductor/JoinQr';
-import { PassengerList } from '@/components/conductor/PassengerList';
-import { AppText, Button, Notice } from '@/components/ui';
+import { NowPlayingLine } from '@/components/conductor/NowPlayingLine';
+import { SpotifyConnect } from '@/components/conductor/SpotifyConnect';
+import { StopBanner } from '@/components/conductor/StopBanner';
+import { TripButton } from '@/components/conductor/TripButton';
+import { PendingList } from '@/components/sala/PendingList';
+import { AppText, Button, Notice, Sheet, Switch, TextField } from '@/components/ui';
+import { SessionProvider } from '@/context/SessionProvider';
 import { useCurrentTrip } from '@/hooks/useCurrentTrip';
-import { useSessionInfo } from '@/hooks/useSessionInfo';
-import { useSessionMembers } from '@/hooks/useSessionMembers';
+import { useHostPlayer } from '@/hooks/useHostPlayer';
+import { useQueue } from '@/hooks/useQueue';
+import { useSession } from '@/hooks/useSession';
+import { useTripControls } from '@/hooks/useTripControls';
+import { useTripMetrics } from '@/hooks/useTripMetrics';
 import { carModelTitle } from '@/lib/carCatalog';
-import { driverColors, fonts, radius, spacing } from '@/theme';
+import { errorMessage } from '@/lib/errors';
+import { openLocationSettings } from '@/services/location/tracking';
+import { useSpotifyLogin } from '@/services/spotify/auth';
+import { setJoinMode } from '@/services/supabase/sessions';
+import { ForceDarkTheme, driverColors, fonts, radius, spacing } from '@/theme';
 
 function useClock(): string {
   const format = () => new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
   const [time, setTime] = useState(format);
   useEffect(() => {
-    const timer = setInterval(() => setTime(format()), 15_000);
+    const timer = setInterval(() => setTime(format()), 10_000);
     return () => clearInterval(timer);
   }, []);
   return time;
 }
 
 /**
- * Modo conductor, primera versión (S1-08): QR para unirse y pasajeros en vivo.
- * Pantalla única y oscura, con tipografía muy grande para leerla de un vistazo.
- * Hora de llegada, km, música y finalizar viaje llegan en el Sprint 2.
+ * Modo conductor (S2-10): pantalla única, oscura y con letra enorme. Todo lo que el conductor
+ * necesita durante el viaje está aquí; la pantalla no se apaga sola.
  */
 export default function ModoConductorScreen() {
   const params = useLocalSearchParams<{ sessionId?: string }>();
   const { trip, loading: tripLoading } = useCurrentTrip();
   const sessionId = params.sessionId ?? (trip?.role === 'conductor' ? trip.sessionId : null);
-
-  const { session, error } = useSessionInfo(sessionId);
-  const { inside, error: membersError } = useSessionMembers(sessionId);
-  const clock = useClock();
 
   // Sin viaje que mostrar: volver a Inicio.
   useEffect(() => {
@@ -47,87 +56,205 @@ export default function ModoConductorScreen() {
     return undefined;
   }, [sessionId, tripLoading, params.sessionId]);
 
-  const passengers = inside.filter((member) => member.role !== 'conductor');
+  return (
+    <ForceDarkTheme>
+      <SafeAreaView style={styles.safe}>
+        <StatusBar style="light" />
+        {sessionId ? (
+          <SessionProvider sessionId={sessionId}>
+            <DriverMode />
+          </SessionProvider>
+        ) : (
+          <ActivityIndicator size="large" color={driverColors.accent} style={styles.loader} />
+        )}
+      </SafeAreaView>
+    </ForceDarkTheme>
+  );
+}
+
+function DriverMode() {
+  useKeepAwake();
+  const clock = useClock();
+  const { sessionId, session, members, pending, online, isHost, error, status } = useSession();
+  const queue = useQueue();
+  const metrics = useTripMetrics();
+  const trip = useTripControls();
+  const spotify = useSpotifyLogin();
+  const [showQr, setShowQr] = useState(false);
+  const [price, setPrice] = useState('');
+  const [modeError, setModeError] = useState<string | null>(null);
+
+  const tripStatus = session?.status ?? 'abierta';
+  const running = tripStatus === 'en_curso';
+  const playerEnabled = Platform.OS !== 'web' && isHost && spotify.connected && tripStatus !== 'finalizada';
+  const player = useHostPlayer(queue, playerEnabled);
+
+  // Al abrir la hoja del precio, se rellena con el propuesto.
+  useEffect(() => {
+    if (trip.phase === 'price') setPrice(trip.suggestedPrice);
+  }, [trip.phase, trip.suggestedPrice]);
+
+  const passengers = members.filter((member) => member.role !== 'conductor');
+  const connected = passengers.filter((member) => online.has(member.user_id)).length;
   const model = session ? carModelTitle(session.car.make, session.car.model, session.car.version) : null;
 
+  const toggleApproval = async (value: boolean) => {
+    setModeError(null);
+    try {
+      await setJoinMode(sessionId, value ? 'aprobacion' : 'libre');
+    } catch (err) {
+      setModeError(errorMessage(err));
+    }
+  };
+
+  if (session === null) {
+    return error ? (
+      <View style={styles.content}>
+        <Notice message={error} />
+        <Button label="Volver al inicio" variant="driver" onPress={() => router.replace('/')} />
+      </View>
+    ) : (
+      <ActivityIndicator size="large" color={driverColors.accent} style={styles.loader} />
+    );
+  }
+
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar style="light" />
+    <View style={styles.flex}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.top}>
           <AppText variant="bodyStrong" color={driverColors.accent}>
-            Modo conductor
+            {running ? 'Hora actual' : 'Modo conductor'}
           </AppText>
           <AppText style={styles.clock} color={driverColors.text} accessibilityLabel={`Son las ${clock}`}>
             {clock}
           </AppText>
+          <View style={styles.carLine}>
+            <AppText variant="heading" color={driverColors.textSecondary} numberOfLines={1} style={styles.flex}>
+              {session.carName}
+              {model && model !== 'Coche' && model !== session.carName ? ` · ${model}` : ''}
+            </AppText>
+            <LicensePlate code={session.nfcCode} size="sm" />
+          </View>
         </View>
 
-        {error !== null ? <Notice message={error} /> : null}
-        {membersError !== null ? <Notice message={membersError} /> : null}
+        {status === 'sin_conexion' ? <Notice tone="info" message="Reconectando con la sala…" /> : null}
 
-        {session === null && error === null ? <ActivityIndicator size="large" color={driverColors.accent} /> : null}
+        <DriverStats distanceM={metrics?.distance_m ?? 0} startedAt={session.startedAt} passengers={passengers.length} connected={connected} />
 
-        {session !== null ? (
+        <NowPlayingLine item={queue.nowPlaying} upcoming={queue.upcoming.length} />
+
+        {!running ? (
           <>
-            <View style={styles.car}>
-              <View style={styles.carText}>
-                <AppText variant="title" color={driverColors.text} numberOfLines={1}>
-                  {session.carName}
-                </AppText>
-                {model && model !== 'Coche' && model !== session.carName ? (
-                  <AppText color={driverColors.textSecondary}>{model}</AppText>
-                ) : null}
-              </View>
-              <LicensePlate code={session.nfcCode} size="sm" />
+            <PendingList sessionId={sessionId} pending={pending} dark />
+            <View style={styles.panel}>
+              <Switch
+                label="Pedir aprobación para entrar"
+                description="Aceptas a cada pasajero antes de que entre. Solo con el coche parado."
+                value={session.joinMode === 'aprobacion'}
+                onChange={(value) => void toggleApproval(value)}
+              />
+              {modeError ? <Notice message={modeError} /> : null}
             </View>
-
-            <View style={styles.count} accessible accessibilityLabel={`${passengers.length} pasajeros`}>
-              <AppText style={styles.countNumber} color={driverColors.accent}>
-                {passengers.length}
-              </AppText>
-              <AppText variant="title" color={driverColors.text}>
-                {passengers.length === 1 ? 'pasajero' : 'pasajeros'}
-              </AppText>
-            </View>
-
-            <View style={styles.qrBlock}>
-              <JoinQr nfcCode={session.nfcCode} />
-            </View>
-
-            <PassengerList members={passengers} dark />
-
-            <Button
-              label="Ver sala"
-              variant="driver"
-              icon="people-outline"
-              size="lg"
-              onPress={() => router.push({ pathname: '/sala/[sessionId]', params: { sessionId: session.id } })}
-            />
           </>
         ) : null}
 
-        <Button label="Volver al inicio" variant="driver" icon="home-outline" onPress={() => router.replace('/')} />
+        {!running || showQr ? (
+          <View style={styles.qr}>
+            <JoinQr nfcCode={session.nfcCode} />
+          </View>
+        ) : (
+          <Button label="Mostrar QR para unirse" variant="driver" icon="qr-code-outline" onPress={() => setShowQr(true)} />
+        )}
+        {running && showQr ? <Button label="Ocultar QR" variant="driver" onPress={() => setShowQr(false)} /> : null}
+
+        <SpotifyConnect
+          connected={spotify.connected}
+          ready={spotify.ready}
+          busy={spotify.busy}
+          error={spotify.error}
+          playerError={player.error}
+          isPlaying={player.spotify?.isPlaying ?? false}
+          onConnect={spotify.login}
+        />
+
+        {trip.error ? <Notice message={trip.error} /> : null}
+        {trip.needsSettings ? <Button label="Abrir ajustes de ubicación" variant="driver" icon="settings-outline" onPress={openLocationSettings} /> : null}
+
+        {isHost ? (
+          running ? (
+            <TripButton mode="finish" busy={trip.phase === 'finishing'} onPress={() => void trip.requestFinish()} />
+          ) : (
+            <TripButton mode="start" busy={trip.phase === 'preparing' || trip.phase === 'starting'} onPress={() => void trip.prepareStart()} />
+          )
+        ) : null}
+
+        <View style={styles.links}>
+          <Button
+            label="Ver sala"
+            variant="driver"
+            icon="people-outline"
+            onPress={() => router.push({ pathname: '/sala/[sessionId]', params: { sessionId } })}
+          />
+          {!running ? <Button label="Volver al inicio" variant="driver" icon="home-outline" onPress={() => router.replace('/')} /> : null}
+          {!running && isHost ? (
+            <Button label="Cerrar el viaje sin salir" variant="ghost" onPress={() => void trip.requestFinish()} />
+          ) : null}
+        </View>
       </ScrollView>
-    </SafeAreaView>
+
+      <StopBanner />
+
+      <Sheet
+        visible={trip.phase === 'price' || trip.phase === 'starting'}
+        title="Precio del combustible"
+        description={
+          trip.suggestedPrice
+            ? 'Es la media de las gasolineras más cercanas. Cámbialo si has repostado a otro precio.'
+            : 'No hemos podido consultarlo. Escribe lo que pagaste por litro.'
+        }
+        onClose={trip.cancel}
+        dark
+      >
+        <TextField
+          label="Euros por litro"
+          value={price}
+          onChangeText={setPrice}
+          keyboardType="decimal-pad"
+          placeholder="1,559"
+          autoFocus={!trip.suggestedPrice}
+        />
+        {trip.error ? <Notice message={trip.error} /> : null}
+        <TripButton mode="start" busy={trip.phase === 'starting'} onPress={() => void trip.confirmStart(price)} />
+        <Button label="Cancelar" variant="ghost" onPress={trip.cancel} />
+      </Sheet>
+
+      <Sheet
+        visible={trip.phase === 'confirm_finish' || trip.phase === 'finishing'}
+        title={running ? '¿Finalizar el viaje?' : '¿Cerrar el viaje?'}
+        description={
+          running
+            ? 'Se para el GPS, se guarda la distancia y todos verán el resumen.'
+            : 'Nadie podrá entrar ya con la pegatina. Podrás crear otro viaje cuando quieras.'
+        }
+        onClose={trip.cancel}
+        dark
+      >
+        <TripButton mode={running ? 'finish' : 'cancel'} busy={trip.phase === 'finishing'} onPress={() => void trip.confirmFinish()} />
+        <Button label="Seguir" variant="ghost" onPress={trip.cancel} />
+      </Sheet>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: driverColors.background },
-  content: { padding: spacing.lg, gap: spacing.lg, alignItems: 'stretch' },
-  top: { alignItems: 'center' },
+  flex: { flex: 1 },
+  loader: { marginTop: spacing.xxl },
+  content: { padding: spacing.lg - 4, gap: spacing.md, paddingBottom: spacing.xxl },
+  top: { alignItems: 'stretch', gap: 2 },
   clock: { fontFamily: fonts.black, fontSize: 104, lineHeight: 110, letterSpacing: -4, textAlign: 'center' },
-  car: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: driverColors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-  },
-  carText: { flex: 1 },
-  count: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: spacing.sm },
-  countNumber: { fontFamily: fonts.black, fontSize: 80, lineHeight: 86, letterSpacing: -2 },
-  qrBlock: { backgroundColor: driverColors.surface, borderRadius: radius.lg, paddingVertical: spacing.lg },
+  carLine: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.xs },
+  panel: { backgroundColor: driverColors.surface, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
+  qr: { backgroundColor: driverColors.surface, borderRadius: radius.lg, paddingVertical: spacing.lg },
+  links: { gap: spacing.sm },
 });
