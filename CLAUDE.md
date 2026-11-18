@@ -65,9 +65,11 @@ docs/                    # requisitos, diseño, actas de sprint
 
 ## Diseño
 
-- Tema claro: fondo blanco roto, texto casi negro, **naranja** como color principal (botones primarios, pestaña activa), tarjetas con esquinas muy redondeadas.
-- Modo conductor: fondo negro, tipografía muy grande, acentos naranja.
-- Referencias visuales en `docs/diseno/` (Inicio, Sala, Modo conductor, Resumen).
+- Estilo «Noche»: **tema oscuro por defecto** y claro o del sistema en Perfil → Apariencia (`src/theme/ThemeProvider.tsx`). Naranja como único color de acción.
+- Colores siempre desde el tema: `useTheme()` para valores sueltos y `useStyles(makeStyles)` para estilos que dependen del tema. Nunca colores fijos en los componentes.
+- Fuente Inter incluida en `assets/fonts` (títulos con Inter Display). Con fuentes propias el grosor lo da `fontFamily` (tokens `fonts` y `typography`), no `fontWeight`.
+- El coche es el protagonista: foto propia > foto del modelo (Wikipedia) > silueta de su color, y el código del coche se muestra como matrícula europea (`src/components/coche/`).
+- Modo conductor: siempre oscuro (`ForceDarkTheme`), tipografía muy grande, acentos naranja.
 - Accesibilidad: soportar texto dinámico, etiquetas de accesibilidad y contraste suficiente.
 
 ## Base de datos (Supabase)
@@ -81,6 +83,8 @@ Reglas RLS:
 - La clave `service_role` y los secretos de Spotify solo existen en Edge Functions.
 
 Realtime:
+- Un solo canal privado por sala y móvil, `sala:<session_id>` (`src/services/supabase/roomChannel.ts`), compartido por la Sala y el Modo conductor. Lo reparte `SessionProvider`; los componentes escuchan con `useSession().on(...)` o `useBroadcast(...)`. No crear canales sueltos con `supabase.channel()` en las pantallas.
+- Solo entran los miembros que están dentro (políticas de `realtime.messages`). Quien espera aprobación usa su canal privado `entrada:<session_id>:<user_id>:…`.
 - Presence: quién está conectado.
 - Broadcast (no se guarda): reacciones, "pedir parada", canción que suena ahora.
 - Cambios en BD: miembros, cola y votos, encuestas, rondas de juego, puntos GPS, fin del viaje.
@@ -114,6 +118,19 @@ Realtime:
 | 4 | 7–13 dic | Juegos, ranking, recuerdos en el perfil, notificaciones, pruebas |
 
 Sprints de una semana (lunes a domingo). Si algo se retrasa se recorta el Sprint 4, nunca el MVP.
+
+## Estado actual
+
+- Sprint 1 y Sprint 2 hechos en código; el detalle, lo que falta probar y la lista de la demo están en `docs/sprints/sprint-1.md` y `docs/sprints/sprint-2.md`. El plan completo de los 4 sprints está en el documento compartido del equipo.
+- Supabase (proyecto `dytieuiyvrsejwvcvirh`) tiene aplicadas todas las migraciones de `supabase/migrations/` y desplegadas las funciones `fuel-price` y `spotify-search`.
+- Ramas: `feat/sprint-1-cierre` (PR #40) y `feat/sprint-2` (PR #42, encima de la anterior).
+
+## Compilar en Windows
+
+- Proyecto en una ruta corta y sin acentos (por ejemplo `C:\dev\copi`).
+- Activar rutas largas (`LongPathsEnabled=1` en el registro) y usar `ninja.exe` 1.12 o posterior en `Android\Sdk\cmake\3.22.1\bin`; si no, falla `buildCMakeDebug` con `mkdir ... No such file or directory`.
+- Para compilar más rápido y ocupar menos, en `android/gradle.properties`: `reactNativeArchitectures=arm64-v8a` (la carpeta `android/` no se sube; se regenera con `npx expo prebuild`).
+- Versión que funciona sin ordenador (pruebas en coche y demo): `npx expo run:android --variant release --device`.
 
 ## Comandos habituales
 
