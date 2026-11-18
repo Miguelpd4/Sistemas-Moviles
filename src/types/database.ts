@@ -219,6 +219,210 @@ export type Database = {
           },
         ];
       };
+      music_queue: {
+        Row: {
+          id: string;
+          session_id: string;
+          spotify_track_id: string;
+          title: string;
+          artist: string;
+          album_art_url: string | null;
+          duration_ms: number;
+          added_by: string;
+          status: string;
+          created_at: string;
+          started_at: string | null;
+          ended_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          spotify_track_id: string;
+          title: string;
+          artist: string;
+          album_art_url?: string | null;
+          duration_ms: number;
+          added_by: string;
+          status?: string;
+          created_at?: string;
+          started_at?: string | null;
+          ended_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          session_id?: string;
+          spotify_track_id?: string;
+          title?: string;
+          artist?: string;
+          album_art_url?: string | null;
+          duration_ms?: number;
+          added_by?: string;
+          status?: string;
+          created_at?: string;
+          started_at?: string | null;
+          ended_at?: string | null;
+        };
+        Relationships: [];
+      };
+      queue_votes: {
+        Row: {
+          queue_id: string;
+          user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          queue_id: string;
+          user_id: string;
+          created_at?: string;
+        };
+        Update: {
+          queue_id?: string;
+          user_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      trip_points: {
+        Row: {
+          id: number;
+          session_id: string;
+          lat: number;
+          lon: number;
+          accuracy_m: number | null;
+          speed_mps: number | null;
+          recorded_at: string;
+        };
+        Insert: {
+          id?: number;
+          session_id: string;
+          lat: number;
+          lon: number;
+          accuracy_m?: number | null;
+          speed_mps?: number | null;
+          recorded_at: string;
+        };
+        Update: {
+          id?: number;
+          session_id?: string;
+          lat?: number;
+          lon?: number;
+          accuracy_m?: number | null;
+          speed_mps?: number | null;
+          recorded_at?: string;
+        };
+        Relationships: [];
+      };
+      trip_metrics: {
+        Row: {
+          session_id: string;
+          distance_m: number;
+          duration_s: number;
+          start_lat: number | null;
+          start_lon: number | null;
+          last_lat: number | null;
+          last_lon: number | null;
+          end_lat: number | null;
+          end_lon: number | null;
+          updated_at: string;
+        };
+        Insert: {
+          session_id: string;
+          distance_m?: number;
+          duration_s?: number;
+          start_lat?: number | null;
+          start_lon?: number | null;
+          last_lat?: number | null;
+          last_lon?: number | null;
+          end_lat?: number | null;
+          end_lon?: number | null;
+          updated_at?: string;
+        };
+        Update: {
+          session_id?: string;
+          distance_m?: number;
+          duration_s?: number;
+          start_lat?: number | null;
+          start_lon?: number | null;
+          last_lat?: number | null;
+          last_lon?: number | null;
+          end_lat?: number | null;
+          end_lon?: number | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      game_rounds: {
+        Row: {
+          id: string;
+          session_id: string;
+          game: string;
+          status: string;
+          payload: Json;
+          created_by: string;
+          created_at: string;
+          ends_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          game: string;
+          status?: string;
+          payload?: Json;
+          created_by: string;
+          created_at?: string;
+          ends_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          session_id?: string;
+          game?: string;
+          status?: string;
+          payload?: Json;
+          created_by?: string;
+          created_at?: string;
+          ends_at?: string | null;
+        };
+        Relationships: [];
+      };
+      game_round_secrets: {
+        Row: {
+          round_id: string;
+          solution: Json;
+        };
+        Insert: {
+          round_id: string;
+          solution: Json;
+        };
+        Update: {
+          round_id?: string;
+          solution?: Json;
+        };
+        Relationships: [];
+      };
+      game_answers: {
+        Row: {
+          round_id: string;
+          user_id: string;
+          answer: Json;
+          points: number;
+          created_at: string;
+        };
+        Insert: {
+          round_id: string;
+          user_id: string;
+          answer: Json;
+          points?: number;
+          created_at?: string;
+        };
+        Update: {
+          round_id?: string;
+          user_id?: string;
+          answer?: Json;
+          points?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -244,6 +448,26 @@ export type Database = {
       is_admin: { Args: { p_session_id: string }; Returns: boolean };
       is_host: { Args: { p_session_id: string }; Returns: boolean };
       shares_session: { Args: { p_user_id: string }; Returns: boolean };
+      review_join: { Args: { p_session_id: string; p_user_id: string; p_accept: boolean }; Returns: undefined };
+      set_copilot: { Args: { p_session_id: string; p_user_id: string | null }; Returns: undefined };
+      set_join_mode: { Args: { p_session_id: string; p_join_mode: string }; Returns: undefined };
+      leave_session: { Args: { p_session_id: string }; Returns: undefined };
+      vote_skip: { Args: { p_queue_id: string }; Returns: Json };
+      start_trip: {
+        Args: { p_session_id: string; p_fuel_price: number; p_lat: number; p_lon: number };
+        Returns: undefined;
+      };
+      end_trip: {
+        Args: { p_session_id: string; p_distance_m: number; p_lat: number | null; p_lon: number | null };
+        Returns: undefined;
+      };
+      create_round: {
+        Args: { p_session_id: string; p_game: string; p_payload: Json; p_solution?: Json | null; p_seconds?: number | null };
+        Returns: string;
+      };
+      submit_answer: { Args: { p_round_id: string; p_answer: Json }; Returns: undefined };
+      reveal_round: { Args: { p_round_id: string }; Returns: undefined };
+      close_round: { Args: { p_round_id: string }; Returns: undefined };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
@@ -255,3 +479,8 @@ export type ProfileRow = Tables<'profiles'>;
 export type CarRow = Tables<'cars'>;
 export type SessionRow = Tables<'sessions'>;
 export type SessionMemberRow = Tables<'session_members'>;
+export type MusicQueueRow = Tables<'music_queue'>;
+export type QueueVoteRow = Tables<'queue_votes'>;
+export type TripMetricsRow = Tables<'trip_metrics'>;
+export type GameRoundRow = Tables<'game_rounds'>;
+export type GameAnswerRow = Tables<'game_answers'>;
