@@ -1,17 +1,19 @@
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
+import { DjRoundPanel } from '@/components/musica/DjRoundPanel';
 import { NowPlayingCard } from '@/components/musica/NowPlayingCard';
 import { QueueList } from '@/components/musica/QueueList';
 import { SearchBox } from '@/components/musica/SearchBox';
 import { AppText, Badge, Button, Notice, Screen, ScreenHeader } from '@/components/ui';
 import { useActiveRound } from '@/hooks/useActiveRound';
+import { useDjRound } from '@/hooks/useDjRound';
 import { useQueue } from '@/hooks/useQueue';
 import { useSession } from '@/hooks/useSession';
 import { errorMessage } from '@/lib/errors';
 import { readGuessWhoPayload } from '@/lib/games/quienLaPuso';
 import { vibrate } from '@/services/device/feedback';
-import { addToQueue, removeFromQueue } from '@/services/supabase/queue';
+import { addDjSong, addToQueue, removeFromQueue } from '@/services/supabase/queue';
 import { spacing, useTheme } from '@/theme';
 import type { SpotifyTrack } from '@/types/spotify';
 
@@ -26,15 +28,20 @@ export default function MusicaScreen() {
   const { sessionId, members, myId } = useSession();
   const { nowPlaying, upcoming, myCount, loading, error, reload } = useQueue();
   const { round } = useActiveRound();
+  const dj = useDjRound();
+  const myDjTurn = dj.round?.status === 'activa' && dj.state?.currentTurn?.id === myId;
   const [actionError, setActionError] = useState<string | null>(null);
 
+  // En mi turno de DJ, la canción que añado es la de la ronda (#20).
+  const djRoundId = myDjTurn ? (dj.round?.id ?? null) : null;
   const add = useCallback(
     async (track: SpotifyTrack) => {
       if (myId === null) return;
-      await addToQueue(sessionId, myId, track);
+      if (djRoundId !== null) await addDjSong(djRoundId, track);
+      else await addToQueue(sessionId, myId, track);
       vibrate('success');
     },
-    [sessionId, myId],
+    [sessionId, myId, djRoundId],
   );
 
   const remove = useCallback(async (id: string) => {
@@ -72,10 +79,12 @@ export default function MusicaScreen() {
       ) : null}
       {actionError ? <Notice message={actionError} /> : null}
 
+      <DjRoundPanel dj={dj} />
+
       <View style={styles.block}>
         <View style={styles.head}>
           <AppText variant="title" accessibilityRole="header" style={styles.flex}>
-            Añadir canción
+            {myDjTurn ? 'Elige tu canción de DJ' : 'Añadir canción'}
           </AppText>
           <Badge label={`${myCount} de ${MAX_PER_PERSON} tuyas`} tone={myCount >= MAX_PER_PERSON ? 'primary' : 'neutral'} />
         </View>
