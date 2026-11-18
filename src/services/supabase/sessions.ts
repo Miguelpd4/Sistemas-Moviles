@@ -1,7 +1,9 @@
 import { AppError, toAppError } from '@/lib/errors';
 import type { Json } from '@/types/database';
+import type { FuelType } from '@/lib/carForm';
 import type {
   JoinInput,
+  JoinMode,
   JoinResult,
   MemberRole,
   MemberStatus,
@@ -98,7 +100,13 @@ export type CarLook = {
 export type SessionWithCar = {
   id: string;
   status: SessionStatus;
+  joinMode: JoinMode;
   hostId: string;
+  startedAt: string | null;
+  endedAt: string | null;
+  fuelPriceEurL: number | null;
+  consumptionL100km: number;
+  fuelType: FuelType;
   carName: string;
   nfcCode: string;
   seats: number;
@@ -108,7 +116,9 @@ export type SessionWithCar = {
 export async function getSessionWithCar(sessionId: string): Promise<SessionWithCar> {
   const { data, error } = await supabase
     .from('sessions')
-    .select('id, status, host_id, cars ( name, nfc_code, seats, make, model, version, color, photo_path, model_image_url )')
+    .select(
+      'id, status, join_mode, host_id, started_at, ended_at, fuel_price_eur_l, consumption_l_100km, cars ( name, nfc_code, seats, fuel_type, make, model, version, color, photo_path, model_image_url )',
+    )
     .eq('id', sessionId)
     .single();
   if (error) throw toAppError(error, 'No se ha podido cargar el viaje.');
@@ -117,7 +127,13 @@ export async function getSessionWithCar(sessionId: string): Promise<SessionWithC
   return {
     id: data.id,
     status: data.status as SessionStatus,
+    joinMode: data.join_mode === 'aprobacion' ? 'aprobacion' : 'libre',
     hostId: data.host_id,
+    startedAt: data.started_at,
+    endedAt: data.ended_at,
+    fuelPriceEurL: data.fuel_price_eur_l === null ? null : Number(data.fuel_price_eur_l),
+    consumptionL100km: Number(data.consumption_l_100km),
+    fuelType: car.fuel_type as FuelType,
     carName: car.name,
     nfcCode: car.nfc_code,
     seats: car.seats,
@@ -169,4 +185,39 @@ export async function getCurrentTrip(userId: string): Promise<CurrentTrip | null
     carName: data.sessions.cars?.name ?? 'el coche',
     driverName: driver?.display_name ?? 'el conductor',
   };
+}
+
+/** Fila de sessions recibida por Realtime: actualiza solo lo que cambia durante el viaje. */
+export function applySessionRow(session: SessionWithCar, row: Record<string, unknown>): SessionWithCar {
+  return {
+    ...session,
+    status: (typeof row.status === 'string' ? row.status : session.status) as SessionStatus,
+    joinMode: row.join_mode === 'aprobacion' ? 'aprobacion' : row.join_mode === 'libre' ? 'libre' : session.joinMode,
+    startedAt: typeof row.started_at === 'string' ? row.started_at : session.startedAt,
+    endedAt: typeof row.ended_at === 'string' ? row.ended_at : session.endedAt,
+    fuelPriceEurL: row.fuel_price_eur_l != null ? Number(row.fuel_price_eur_l) : session.fuelPriceEurL,
+  };
+}
+
+// Gestión de la sala (S2-03) -------------------------------------------------
+
+export async function reviewJoin(sessionId: string, userId: string, accept: boolean): Promise<void> {
+  const { error } = await supabase.rpc('review_join', { p_session_id: sessionId, p_user_id: userId, p_accept: accept });
+  if (error) throw toAppError(error, accept ? 'No se ha podido aceptar.' : 'No se ha podido rechazar.');
+}
+
+/** null quita el copiloto actual. */
+export async function setCopilot(sessionId: string, userId: string | null): Promise<void> {
+  const { error } = await supabase.rpc('set_copilot', { p_session_id: sessionId, p_user_id: userId });
+  if (error) throw toAppError(error, 'No se ha podido cambiar el copiloto.');
+}
+
+export async function setJoinMode(sessionId: string, mode: JoinMode): Promise<void> {
+  const { error } = await supabase.rpc('set_join_mode', { p_session_id: sessionId, p_join_mode: mode });
+  if (error) throw toAppError(error, 'No se ha podido cambiar cómo se entra.');
+}
+
+export async function leaveSession(sessionId: string): Promise<void> {
+  const { error } = await supabase.rpc('leave_session', { p_session_id: sessionId });
+  if (error) throw toAppError(error, 'No se ha podido salir del viaje.');
 }

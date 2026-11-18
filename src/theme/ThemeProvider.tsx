@@ -82,3 +82,13 @@ export function useStyles<T extends NamedStyles>(factory: (colors: Palette) => T
   const { colors } = useTheme();
   return useMemo(() => factory(colors), [factory, colors]);
 }
+
+/** Fuerza el tema oscuro en una parte de la app (el Modo conductor siempre es oscuro). */
+export function ForceDarkTheme({ children }: { children: ReactNode }) {
+  const parent = useTheme();
+  const value = useMemo<ThemeValue>(
+    () => ({ ...parent, colors: darkColors, scheme: 'dark', elevation: elevationFor(darkColors) }),
+    [parent],
+  );
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+}

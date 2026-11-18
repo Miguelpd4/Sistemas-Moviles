@@ -54,3 +54,15 @@ export type SessionMember = {
   joined_at: string;
   left_at: string | null;
 };
+
+/** Avisos instantáneos de la sala (Broadcast, no se guardan). */
+export type BroadcastEvents = {
+  /** Un pasajero pide parar. */
+  pedir_parada: { userId: string; name: string };
+  /** El móvil del conductor, cada 5 s: lo que suena y por dónde va. */
+  ahora_suena: { queueId: string | null; progressMs: number; durationMs: number; isPlaying: boolean };
+  /** Alguien ha respondido a una ronda (para mostrar «3 de 4 han respondido»). */
+  ronda: { roundId: string; userId: string };
+};
+
+export type BroadcastEvent = keyof BroadcastEvents;

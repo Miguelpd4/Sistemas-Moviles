@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState, type ComponentProps } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
@@ -60,6 +60,7 @@ export default function InicioScreen() {
   const { colors } = useTheme();
   const styles = useStyles(makeStyles);
   const { user, profile, isAnonymous } = useAuth();
+  const { aviso } = useLocalSearchParams<{ aviso?: string }>();
   const { trip } = useCurrentTrip();
   const { car, reload: reloadCar } = useMyCar();
   const nfc = useNfcScan();
@@ -139,6 +140,7 @@ export default function InicioScreen() {
         ) : null}
       </View>
 
+      {aviso === 'fuera' && trip === null ? <Notice tone="info" message="Ya no estás en ese viaje." /> : null}
       {trip ? <CurrentTripCard trip={trip} /> : null}
       {error !== null ? <Notice message={error} /> : null}
 

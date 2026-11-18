@@ -13,4 +13,11 @@ export {
   typography,
 } from './tokens';
 export type { Palette, TypographyVariant } from './tokens';
-export { ThemeProvider, useStyles, useTheme, type ThemePreference, type ThemeScheme } from './ThemeProvider';
+export {
+  ForceDarkTheme,
+  ThemeProvider,
+  useStyles,
+  useTheme,
+  type ThemePreference,
+  type ThemeScheme,
+} from './ThemeProvider';
