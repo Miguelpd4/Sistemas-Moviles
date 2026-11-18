@@ -14,6 +14,19 @@ export const RPC_MESSAGES = {
   INVALID_NAME: 'Escribe un nombre de 1 a 30 caracteres.',
   SEAT_TAKEN: 'Alguien acaba de coger ese asiento. Elige otro.',
   JOIN_REJECTED: 'El conductor no ha aceptado tu entrada en este viaje.',
+  NOT_ADMIN: 'Solo el conductor o el copiloto pueden hacer esto.',
+  NOT_HOST: 'Solo el conductor puede hacer esto.',
+  NOT_PENDING: 'Esta persona ya no está esperando.',
+  NOT_MEMBER: 'Ya no estás en este viaje.',
+  HOST_CANNOT_LEAVE: 'El conductor no puede salir de la sala; puede finalizar el viaje.',
+  QUEUE_LIMIT: 'Ya tienes 3 canciones en la cola. Espera a que suene alguna.',
+  NOT_PLAYING: 'Esa canción ya no está sonando.',
+  INVALID_PRICE: 'El precio del combustible no es válido.',
+  TRIP_NOT_OPEN: 'El viaje ya ha empezado o ha terminado.',
+  TRIP_ALREADY_ENDED: 'El viaje ya ha terminado.',
+  GAME_IN_PROGRESS: 'Ya hay un juego en marcha. Termínalo antes de empezar otro.',
+  ROUND_CLOSED: 'Se acabó el tiempo para responder.',
+  TOO_EARLY: 'Todavía no se puede ver el resultado.',
 } as const;
 
 export type RpcErrorCode = keyof typeof RPC_MESSAGES;
