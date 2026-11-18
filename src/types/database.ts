@@ -468,6 +468,7 @@ export type Database = {
       submit_answer: { Args: { p_round_id: string; p_answer: Json }; Returns: undefined };
       reveal_round: { Args: { p_round_id: string }; Returns: undefined };
       close_round: { Args: { p_round_id: string }; Returns: undefined };
+      start_guess_who: { Args: { p_session_id: string; p_seconds?: number }; Returns: string };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

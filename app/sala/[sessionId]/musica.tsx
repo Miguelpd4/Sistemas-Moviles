@@ -5,9 +5,11 @@ import { NowPlayingCard } from '@/components/musica/NowPlayingCard';
 import { QueueList } from '@/components/musica/QueueList';
 import { SearchBox } from '@/components/musica/SearchBox';
 import { AppText, Badge, Button, Notice, Screen, ScreenHeader } from '@/components/ui';
+import { useActiveRound } from '@/hooks/useActiveRound';
 import { useQueue } from '@/hooks/useQueue';
 import { useSession } from '@/hooks/useSession';
 import { errorMessage } from '@/lib/errors';
+import { readGuessWhoPayload } from '@/lib/games/quienLaPuso';
 import { vibrate } from '@/services/device/feedback';
 import { addToQueue, removeFromQueue } from '@/services/supabase/queue';
 import { spacing, useTheme } from '@/theme';
@@ -23,6 +25,7 @@ export default function MusicaScreen() {
   const { colors } = useTheme();
   const { sessionId, members, myId } = useSession();
   const { nowPlaying, upcoming, myCount, loading, error, reload } = useQueue();
+  const { round } = useActiveRound();
   const [actionError, setActionError] = useState<string | null>(null);
 
   const add = useCallback(
@@ -43,7 +46,13 @@ export default function MusicaScreen() {
     }
   }, []);
 
-  const addedBy = nowPlaying ? (members.find((member) => member.user_id === nowPlaying.added_by) ?? null) : null;
+  // Mientras se juega a «¿Quién la ha puesto?» con esta canción, no se dice quién la puso (#22).
+  const mystery =
+    nowPlaying !== null &&
+    round?.game === 'quien_la_puso' &&
+    round.status === 'activa' &&
+    readGuessWhoPayload(round.payload).queueId === nowPlaying.id;
+  const addedBy = nowPlaying && !mystery ? (members.find((member) => member.user_id === nowPlaying.added_by) ?? null) : null;
 
   return (
     <Screen>
@@ -52,7 +61,7 @@ export default function MusicaScreen() {
       {loading && nowPlaying === null && upcoming.length === 0 ? (
         <ActivityIndicator color={colors.primary} />
       ) : (
-        <NowPlayingCard item={nowPlaying} addedBy={addedBy} members={members.length} onError={setActionError} />
+        <NowPlayingCard item={nowPlaying} addedBy={addedBy} mystery={mystery} members={members.length} onError={setActionError} />
       )}
 
       {error ? (

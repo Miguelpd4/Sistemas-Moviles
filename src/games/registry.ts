@@ -3,7 +3,7 @@ import type { ComponentProps } from 'react';
 
 import type { GameId } from '@/services/supabase/games';
 
-/** Juegos de la sala (S2-09). En este sprint solo «probable» está disponible. */
+/** Juegos de la sala (S2-09). Disponibles: «probable» y «¿Quién la ha puesto?» (#22). */
 export type GameInfo = {
   id: GameId;
   name: string;
@@ -36,7 +36,7 @@ export const GAMES: readonly GameInfo[] = [
     description: 'Adivina quién del coche ha puesto la canción que suena.',
     icon: 'account-music',
     minPlayers: 3,
-    available: false,
+    available: true,
   },
   {
     id: 'trivial',
