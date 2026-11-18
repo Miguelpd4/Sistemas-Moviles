@@ -54,6 +54,8 @@ Las tres últimas se aplicaron con el conector de Supabase y el fichero lleva la
 
 ## Lo que hay que hacer para probarlo
 
+El guion completo de pruebas en móviles reales (Spotify Premium, GPS en coche y juegos musicales) está en [`sprint-2-pruebas.md`](sprint-2-pruebas.md).
+
 1. `npx expo install expo-haptics expo-keep-awake expo-speech` (o `npm install`): son paquetes nuevos.
 2. Como hay módulos nativos nuevos, volver a compilar: `npx expo run:android`.
 3. Spotify (si no está hecho del Sprint 1): `npx supabase secrets set SPOTIFY_CLIENT_ID=... SPOTIFY_CLIENT_SECRET=...` y `EXPO_PUBLIC_SPOTIFY_CLIENT_ID` en `.env`. El conductor conecta su cuenta Premium desde el Modo conductor y deja Spotify abierto en el móvil.
