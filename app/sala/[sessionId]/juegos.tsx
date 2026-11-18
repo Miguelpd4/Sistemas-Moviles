@@ -4,18 +4,28 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { Countdown } from '@/components/juegos/Countdown';
 import { GameLobby } from '@/components/juegos/GameLobby';
+import { GuessWhoSong } from '@/components/juegos/GuessWhoSong';
 import { OptionList, type GameOption } from '@/components/juegos/OptionList';
 import { ResultsBars } from '@/components/juegos/ResultsBars';
-import { AppText, Badge, Button, Glow, Notice, Screen, ScreenHeader } from '@/components/ui';
-import { gameInfo, type GameInfo } from '@/games/registry';
+import { AppText, Avatar, Badge, Button, Glow, Notice, Screen, ScreenHeader } from '@/components/ui';
+import { gameInfo } from '@/games/registry';
 import { useActiveRound } from '@/hooks/useActiveRound';
 import { useNow } from '@/hooks/useNow';
+import { useQueue } from '@/hooks/useQueue';
 import { useSession } from '@/hooks/useSession';
-import { errorMessage } from '@/lib/errors';
+import { AppError, errorMessage } from '@/lib/errors';
 import { PROBABLE_SECONDS, pickQuestion } from '@/lib/games/probable';
+import {
+  GUESS_WHO_BLOCKER_MESSAGES,
+  GUESS_WHO_SECONDS,
+  expectedAnswers,
+  guessWhoBlocker,
+  readGuessWhoPayload,
+  readSolutionOption,
+} from '@/lib/games/quienLaPuso';
 import { tally } from '@/lib/games/tally';
 import { vibrate } from '@/services/device/feedback';
-import { closeRound, createRound, revealRound, submitAnswer } from '@/services/supabase/games';
+import { closeRound, createRound, revealRound, startGuessWho, submitAnswer, type GameId } from '@/services/supabase/games';
 import { radius, spacing, useStyles, useTheme, type Palette } from '@/theme';
 import type { Json } from '@/types/database';
 
@@ -26,22 +36,29 @@ function readPayload(payload: Json | undefined): ProbablePayload {
 }
 
 /**
- * Pestaña Juegos (S2-09): el motor de rondas con «¿Quién es más probable que…?». Todos votan a
- * la vez, nadie ve los votos hasta el final y el resultado aparece en todas las pantallas.
+ * Pestaña Juegos: el motor de rondas con «¿Quién es más probable que…?» (S2-09) y «¿Quién la ha
+ * puesto?» (#22). Todos responden a la vez, nadie ve las respuestas hasta el final y el resultado
+ * aparece en todas las pantallas.
  */
 export default function JuegosScreen() {
   const { colors } = useTheme();
   const styles = useStyles(makeStyles);
   const { sessionId, members, myId, isAdmin, send } = useSession();
-  const { round, answers, myAnswer, answeredBy, usedQuestionIds, loading, error, markAnswered, setMyAnswerLocal } = useActiveRound();
+  const { round, answers, myAnswer, answeredBy, solution, usedQuestionIds, usedQueueIds, loading, error, markAnswered, setMyAnswerLocal } =
+    useActiveRound();
+  const queue = useQueue();
   const [starting, setStarting] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const now = useNow(500);
   const revealedRef = useRef<string | null>(null);
 
-  const payload = readPayload(round?.payload);
-  const options = payload.options ?? [];
+  const isGuessWho = round?.game === 'quien_la_puso';
+  const probable = readPayload(round?.payload);
+  const guess = useMemo(() => (isGuessWho ? readGuessWhoPayload(round?.payload) : null), [isGuessWho, round?.payload]);
+  const probableOptions = probable.options;
+  const options = useMemo<readonly GameOption[]>(() => (guess ? guess.options : (probableOptions ?? [])), [guess, probableOptions]);
+  const totalSeconds = isGuessWho ? GUESS_WHO_SECONDS : PROBABLE_SECONDS;
   const endsAt = round?.ends_at ? new Date(round.ends_at).getTime() : null;
   const secondsLeft = endsAt ? Math.max(0, Math.ceil((endsAt - now) / 1000)) : 0;
   const active = round?.status === 'activa';
@@ -50,12 +67,17 @@ export default function JuegosScreen() {
     : null);
   const canManage = round !== null && (isAdmin || round.created_by === myId);
 
+  // Quien puso la canción no responde. Se sabe por la cola mientras la canción sigue en ella.
+  const adderId = guess?.queueId ? (queue.items.find((item) => item.id === guess.queueId)?.added_by ?? null) : null;
+  const iPutIt = isGuessWho && adderId !== null && adderId === myId;
+
   // Nueva ronda: se olvida la elección anterior.
   const roundId = round?.id ?? null;
   useEffect(() => setSelected(null), [roundId]);
 
   // Revelar cuando se acaba el tiempo o han respondido todos. Varios móviles pueden pedirlo: no pasa nada.
-  const everyone = members.length > 0 && answeredBy.size >= members.length;
+  const needed = isGuessWho ? expectedAnswers(members.map((member) => member.user_id), adderId) : members.length;
+  const everyone = needed > 0 && answeredBy.size >= needed;
   useEffect(() => {
     if (!active || roundId === null || revealedRef.current === roundId) return;
     if ((endsAt !== null && now >= endsAt) || everyone) {
@@ -68,10 +90,7 @@ export default function JuegosScreen() {
 
   const startProbable = async () => {
     const question = pickQuestion(usedQuestionIds);
-    if (question === null) {
-      setActionError('Ya habéis jugado todas las preguntas de este viaje.');
-      return;
-    }
+    if (question === null) throw new AppError('Ya habéis jugado todas las preguntas de este viaje.');
     const roundOptions: GameOption[] = members.map((member) => ({
       id: member.user_id,
       label: member.display_name,
@@ -81,11 +100,22 @@ export default function JuegosScreen() {
     await createRound(sessionId, 'probable', { questionId: question.id, question: question.text, options: roundOptions }, null, PROBABLE_SECONDS);
   };
 
-  const start = async (game: GameInfo) => {
-    setStarting(game.id);
+  const startGuess = async () => {
+    const blocker = guessWhoBlocker({ nowPlayingId: queue.nowPlaying?.id ?? null, players: members.length, usedQueueIds });
+    if (blocker !== null) throw new AppError(GUESS_WHO_BLOCKER_MESSAGES[blocker]);
+    await startGuessWho(sessionId, GUESS_WHO_SECONDS);
+  };
+
+  const startGame = async (game: GameId) => {
+    if (game === 'probable') await startProbable();
+    else if (game === 'quien_la_puso') await startGuess();
+  };
+
+  const start = async (game: GameId) => {
+    setStarting(game);
     setActionError(null);
     try {
-      if (game.id === 'probable') await startProbable();
+      await startGame(game);
     } catch (err) {
       setActionError(errorMessage(err));
     } finally {
@@ -104,17 +134,19 @@ export default function JuegosScreen() {
       markAnswered(myId);
       send('ronda', { roundId: round.id, userId: myId });
     } catch (err) {
+      setSelected(null);
       setActionError(errorMessage(err));
     }
   };
 
   const next = async () => {
     if (round === null) return;
-    setStarting('probable');
+    const game = round.game as GameId;
+    setStarting(game);
     setActionError(null);
     try {
       await closeRound(round.id);
-      await startProbable();
+      await startGame(game);
     } catch (err) {
       setActionError(errorMessage(err));
     } finally {
@@ -142,6 +174,14 @@ export default function JuegosScreen() {
   }, [answers, options]);
   const myPoints = answers.find((row) => row.user_id === myId)?.points ?? 0;
   const info = round ? gameInfo(round.game) : undefined;
+  const solutionId = readSolutionOption(solution);
+  const solutionOption = solutionId ? (options.find((option) => option.id === solutionId) ?? null) : null;
+
+  const myResult = (() => {
+    if (myPoints > 0) return `¡Has acertado! +${myPoints} puntos`;
+    if (isGuessWho && solutionId !== null && solutionId === myId) return '¡Era tuya! A ver si alguien te ha pillado.';
+    return myOption ? 'Esta vez no has acertado.' : 'No has votado.';
+  })();
 
   return (
     <Screen>
@@ -152,51 +192,88 @@ export default function JuegosScreen() {
       {loading && round === null ? (
         <ActivityIndicator color={colors.primary} />
       ) : round === null ? (
-        <GameLobby players={members.length} starting={starting} onStart={(game) => void start(game)} />
+        <GameLobby players={members.length} starting={starting} onStart={(game) => void start(game.id)} />
       ) : active ? (
         <View style={styles.block}>
           <View style={styles.question}>
             <Glow cy={0.1} />
             <View style={styles.questionTop}>
               <Badge label={info?.name ?? 'Juego'} tone="primary" />
-              {endsAt ? <Countdown secondsLeft={secondsLeft} totalSeconds={PROBABLE_SECONDS} /> : null}
+              {endsAt ? <Countdown secondsLeft={secondsLeft} totalSeconds={totalSeconds} /> : null}
             </View>
+            {guess ? <GuessWhoSong title={guess.title} artist={guess.artist} albumArtUrl={guess.albumArtUrl} /> : null}
             <AppText variant="display" accessibilityRole="header">
-              {payload.question ?? '¿…?'}
+              {guess ? '¿Quién ha puesto esta canción?' : (probable.question ?? '¿…?')}
             </AppText>
             <View style={styles.progress}>
               <Ionicons name="people" size={18} color={colors.textSecondary} />
               <AppText variant="label" color={colors.textSecondary}>
-                {answeredBy.size} de {members.length} han votado
+                {answeredBy.size} de {needed} han votado
               </AppText>
             </View>
           </View>
-          <OptionList options={options} selected={myOption} disabled={secondsLeft <= 0} onSelect={(id) => void vote(id)} />
-          <AppText variant="caption" color={colors.textTertiary} style={styles.center}>
-            {myOption ? 'Puedes cambiar tu voto mientras quede tiempo.' : 'Toca a quien creas. Nadie verá los votos hasta el final.'}
-          </AppText>
+          {iPutIt ? (
+            <View style={styles.secret}>
+              <Ionicons name="eye-off" size={28} color={colors.primary} />
+              <AppText variant="heading">La has puesto tú</AppText>
+              <AppText color={colors.textSecondary} style={styles.center}>
+                Esta vez no respondes. ¡Disimula y no te delates!
+              </AppText>
+            </View>
+          ) : (
+            <>
+              <OptionList options={options} selected={myOption} disabled={secondsLeft <= 0} onSelect={(id) => void vote(id)} />
+              <AppText variant="caption" color={colors.textTertiary} style={styles.center}>
+                {myOption ? 'Puedes cambiar tu voto mientras quede tiempo.' : 'Toca a quien creas. Nadie verá los votos hasta el final.'}
+              </AppText>
+            </>
+          )}
         </View>
       ) : (
         <View style={styles.block}>
           <View style={styles.question}>
             <Glow cy={0.1} />
             <Badge label="Resultado" tone="primary" />
-            <AppText variant="title">{payload.question ?? ''}</AppText>
-            {result.winners.length > 0 ? (
-              <AppText variant="display" color={colors.primaryText}>
-                {result.winners.map((id) => options.find((option) => option.id === id)?.label ?? '').join(' y ')}
-              </AppText>
+            {guess ? (
+              <>
+                <GuessWhoSong title={guess.title} artist={guess.artist} albumArtUrl={guess.albumArtUrl} />
+                {solutionOption ? (
+                  <View style={styles.winner}>
+                    <Avatar kind={solutionOption.avatarKind ?? 'preset'} value={solutionOption.avatarValue ?? ''} size={48} />
+                    <AppText variant="display" color={colors.primaryText} style={styles.flex}>
+                      La puso {solutionOption.label}
+                    </AppText>
+                  </View>
+                ) : (
+                  <ActivityIndicator color={colors.primary} />
+                )}
+              </>
             ) : (
-              <AppText color={colors.textSecondary}>Nadie ha votado esta vez.</AppText>
+              <>
+                <AppText variant="title">{probable.question ?? ''}</AppText>
+                {result.winners.length > 0 ? (
+                  <AppText variant="display" color={colors.primaryText}>
+                    {result.winners.map((id) => options.find((option) => option.id === id)?.label ?? '').join(' y ')}
+                  </AppText>
+                ) : (
+                  <AppText color={colors.textSecondary}>Nadie ha votado esta vez.</AppText>
+                )}
+              </>
             )}
             <AppText variant="label" color={myPoints > 0 ? colors.success : colors.textSecondary}>
-              {myPoints > 0 ? `¡Has acertado! +${myPoints} puntos` : myOption ? 'Esta vez no has acertado.' : 'No has votado.'}
+              {myResult}
             </AppText>
           </View>
           <ResultsBars result={result} options={options} />
           {canManage ? (
             <View style={styles.actions}>
-              <Button label="Otra pregunta" icon="refresh" size="lg" loading={starting !== null} onPress={() => void next()} />
+              <Button
+                label={isGuessWho ? 'Otra canción' : 'Otra pregunta'}
+                icon="refresh"
+                size="lg"
+                loading={starting !== null}
+                onPress={() => void next()}
+              />
               <Button label="Terminar" variant="secondary" onPress={() => void finish()} />
             </View>
           ) : (
@@ -225,6 +302,15 @@ const makeStyles = (c: Palette) =>
     },
     questionTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     progress: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    secret: {
+      alignItems: 'center',
+      gap: spacing.xs,
+      padding: spacing.lg,
+      borderRadius: radius.lg,
+      backgroundColor: c.primarySoft,
+    },
+    winner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 2 },
+    flex: { flex: 1 },
     center: { textAlign: 'center' },
     actions: { gap: spacing.sm },
     bottomSpace: { height: 72 },

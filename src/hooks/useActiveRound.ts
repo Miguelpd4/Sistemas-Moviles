@@ -1,22 +1,26 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { errorMessage } from '@/lib/errors';
-import { getAnswers, getRounds, type AnswerRow, type RoundRow } from '@/services/supabase/games';
+import { getAnswers, getRounds, getSolution, type AnswerRow, type RoundRow } from '@/services/supabase/games';
+import type { Json } from '@/types/database';
 
 import { useSession } from './useSession';
 
 /** Juegos musicales: van por su cuenta y no ocupan la pantalla de Juegos. */
-const MUSIC_GAMES = new Set(['dj', 'quien_la_puso']);
+const MUSIC_GAMES = new Set(['dj']);
+/** Juegos con solución secreta: al revelarse se carga para mostrarla. */
+const SECRET_GAMES = new Set(['trivial', 'adivina_cancion', 'quien_la_puso']);
 
 /**
  * La ronda de juego en pantalla (S2-09): la activa o revelada más reciente, quién ha respondido
- * (por Broadcast) y, una vez revelada, todas las respuestas.
+ * (por Broadcast) y, una vez revelada, todas las respuestas y la solución si la hay.
  */
 export function useActiveRound() {
   const { sessionId, on, myId } = useSession();
   const [rounds, setRounds] = useState<RoundRow[]>([]);
   const [answeredBy, setAnsweredBy] = useState<ReadonlySet<string>>(new Set());
   const [answers, setAnswers] = useState<AnswerRow[]>([]);
+  const [loadedSolution, setLoadedSolution] = useState<{ roundId: string; value: Json | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,6 +56,7 @@ export function useActiveRound() {
   );
   const roundId = round?.id ?? null;
   const roundStatus = round?.status ?? null;
+  const roundGame = round?.game ?? null;
 
   // Quién ha respondido a la ronda activa.
   useEffect(() => {
@@ -82,6 +87,33 @@ export function useActiveRound() {
     };
   }, [roundId, roundStatus, myId]);
 
+  // Solución secreta: solo se puede leer (RLS) cuando la ronda ya no está activa.
+  useEffect(() => {
+    if (roundId === null || roundStatus === 'activa' || roundGame === null || !SECRET_GAMES.has(roundGame)) return;
+    let active = true;
+    getSolution(roundId)
+      .then((value) => {
+        if (active) setLoadedSolution({ roundId, value });
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [roundId, roundStatus, roundGame]);
+
+  /** Canciones con las que ya se ha jugado a «¿Quién la ha puesto?». */
+  const usedQueueIds = useMemo(
+    () =>
+      rounds
+        .filter((item) => item.game === 'quien_la_puso')
+        .map((item) => {
+          const payload = item.payload as { queueId?: unknown } | null;
+          return typeof payload?.queueId === 'string' ? payload.queueId : null;
+        })
+        .filter((id): id is string => id !== null),
+    [rounds],
+  );
+
   const usedQuestionIds = useMemo(
     () =>
       rounds
@@ -101,7 +133,9 @@ export function useActiveRound() {
     answers,
     myAnswer,
     answeredBy,
+    solution: roundStatus !== 'activa' && loadedSolution?.roundId === roundId ? loadedSolution.value : null,
     usedQuestionIds,
+    usedQueueIds,
     loading,
     error,
     reload,

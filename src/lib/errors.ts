@@ -27,6 +27,10 @@ export const RPC_MESSAGES = {
   GAME_IN_PROGRESS: 'Ya hay un juego en marcha. Termínalo antes de empezar otro.',
   ROUND_CLOSED: 'Se acabó el tiempo para responder.',
   TOO_EARLY: 'Todavía no se puede ver el resultado.',
+  NOTHING_PLAYING: 'Ahora no suena ninguna canción. Espera a que empiece la siguiente.',
+  SONG_ALREADY_USED: 'Ya habéis jugado con esta canción. Espera a la siguiente.',
+  NOT_ENOUGH_PLAYERS: 'Hacen falta al menos 3 personas en el coche.',
+  OWN_SONG: 'Esta canción la has puesto tú: esta vez no respondes.',
 } as const;
 
 export type RpcErrorCode = keyof typeof RPC_MESSAGES;

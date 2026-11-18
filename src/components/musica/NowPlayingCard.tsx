@@ -13,6 +13,8 @@ import { SkipVoteButton } from './SkipVoteButton';
 type Props = {
   item: QueueRow | null;
   addedBy: SessionMember | null;
+  /** Se está jugando a «¿Quién la ha puesto?» con esta canción: no se dice quién la puso. */
+  mystery?: boolean;
   members: number;
   onError: (message: string) => void;
 };
@@ -23,7 +25,7 @@ const clock = (ms: number) => {
 };
 
 /** Lo que suena ahora: carátula grande, quién la puso, barra de progreso y votar para saltar. */
-export function NowPlayingCard({ item, addedBy, members, onError }: Props) {
+export function NowPlayingCard({ item, addedBy, mystery = false, members, onError }: Props) {
   const { colors } = useTheme();
   const styles = useStyles(makeStyles);
   const { progressMs, durationMs } = useNowPlaying(item?.id ?? null, item?.duration_ms ?? 0);
@@ -86,7 +88,14 @@ export function NowPlayingCard({ item, addedBy, members, onError }: Props) {
       </View>
 
       <View style={styles.bottom}>
-        {addedBy ? (
+        {mystery ? (
+          <View style={styles.who}>
+            <Ionicons name="help-circle" size={28} color={colors.primary} />
+            <AppText variant="caption" color={colors.textSecondary} numberOfLines={2} style={styles.whoText}>
+              ¿Quién la ha puesto? Adivínalo en Juegos
+            </AppText>
+          </View>
+        ) : addedBy ? (
           <View style={styles.who}>
             <Avatar kind={addedBy.avatar_kind} value={addedBy.avatar_value} size={28} />
             <AppText variant="caption" color={colors.textSecondary} numberOfLines={1} style={styles.whoText}>

@@ -27,6 +27,13 @@ export async function createRound(
   return data;
 }
 
+/** «¿Quién la ha puesto?» (#22): el servidor crea la ronda con la canción que suena y guarda quién la puso. */
+export async function startGuessWho(sessionId: string, seconds: number): Promise<string> {
+  const { data, error } = await supabase.rpc('start_guess_who', { p_session_id: sessionId, p_seconds: seconds });
+  if (error) throw toAppError(error, 'No se ha podido empezar el juego.');
+  return data;
+}
+
 export async function submitAnswer(roundId: string, answer: Json): Promise<void> {
   const { error } = await supabase.rpc('submit_answer', { p_round_id: roundId, p_answer: answer });
   if (error) throw toAppError(error, 'No se ha podido enviar tu respuesta.');
