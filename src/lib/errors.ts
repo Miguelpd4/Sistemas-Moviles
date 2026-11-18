@@ -31,6 +31,7 @@ export const RPC_MESSAGES = {
   SONG_ALREADY_USED: 'Ya habéis jugado con esta canción. Espera a la siguiente.',
   NOT_ENOUGH_PLAYERS: 'Hacen falta al menos 3 personas en el coche.',
   OWN_SONG: 'Esta canción la has puesto tú: esta vez no respondes.',
+  NOT_ENOUGH_SONGS: 'Hacen falta al menos 3 canciones distintas en el viaje (y alguna que no haya salido ya). Añadid más en Música.',
 } as const;
 
 export type RpcErrorCode = keyof typeof RPC_MESSAGES;

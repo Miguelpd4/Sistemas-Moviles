@@ -34,6 +34,20 @@ export async function startGuessWho(sessionId: string, seconds: number): Promise
   return data;
 }
 
+/** «Adivina la canción» (#21): el servidor elige la canción, el segundo y las opciones. */
+export async function startSongQuiz(sessionId: string, seconds: number): Promise<string> {
+  const { data, error } = await supabase.rpc('start_song_quiz', { p_session_id: sessionId, p_seconds: seconds });
+  if (error) throw toAppError(error, 'No se ha podido empezar el juego.');
+  return data;
+}
+
+/** Solo el conductor y con la ronda activa: qué canción poner y desde qué segundo. */
+export async function getSongClip(roundId: string): Promise<Json> {
+  const { data, error } = await supabase.rpc('get_song_clip', { p_round_id: roundId });
+  if (error) throw toAppError(error, 'No se ha podido preparar el fragmento.');
+  return data;
+}
+
 export async function submitAnswer(roundId: string, answer: Json): Promise<void> {
   const { error } = await supabase.rpc('submit_answer', { p_round_id: roundId, p_answer: answer });
   if (error) throw toAppError(error, 'No se ha podido enviar tu respuesta.');

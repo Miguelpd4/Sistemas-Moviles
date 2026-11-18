@@ -3,7 +3,7 @@ import type { ComponentProps } from 'react';
 
 import type { GameId } from '@/services/supabase/games';
 
-/** Juegos de la sala (S2-09). Disponibles: «probable» y «¿Quién la ha puesto?» (#22). */
+/** Juegos de la sala (S2-09). Disponibles: «probable», «Adivina la canción» (#21) y «¿Quién la ha puesto?» (#22). */
 export type GameInfo = {
   id: GameId;
   name: string;
@@ -25,10 +25,10 @@ export const GAMES: readonly GameInfo[] = [
   {
     id: 'adivina_cancion',
     name: 'Adivina la canción',
-    description: 'Suenan 10 segundos de una canción de la cola. ¿Quién la reconoce?',
+    description: 'Suenan 10 segundos de una canción del viaje en el coche. ¿Cuál es?',
     icon: 'music-circle',
     minPlayers: 2,
-    available: false,
+    available: true,
   },
   {
     id: 'quien_la_puso',
