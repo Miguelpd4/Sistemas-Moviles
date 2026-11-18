@@ -14,6 +14,7 @@ import { useNow } from '@/hooks/useNow';
 import { useQueue } from '@/hooks/useQueue';
 import { useSession } from '@/hooks/useSession';
 import { AppError, errorMessage } from '@/lib/errors';
+import { SONG_QUIZ_SECONDS, readSongQuizPayload } from '@/lib/games/adivinaCancion';
 import { PROBABLE_SECONDS, pickQuestion } from '@/lib/games/probable';
 import {
   GUESS_WHO_BLOCKER_MESSAGES,
@@ -25,7 +26,7 @@ import {
 } from '@/lib/games/quienLaPuso';
 import { tally } from '@/lib/games/tally';
 import { vibrate } from '@/services/device/feedback';
-import { closeRound, createRound, revealRound, startGuessWho, submitAnswer, type GameId } from '@/services/supabase/games';
+import { closeRound, createRound, revealRound, startGuessWho, startSongQuiz, submitAnswer, type GameId } from '@/services/supabase/games';
 import { radius, spacing, useStyles, useTheme, type Palette } from '@/theme';
 import type { Json } from '@/types/database';
 
@@ -36,9 +37,9 @@ function readPayload(payload: Json | undefined): ProbablePayload {
 }
 
 /**
- * Pestaña Juegos: el motor de rondas con «¿Quién es más probable que…?» (S2-09) y «¿Quién la ha
- * puesto?» (#22). Todos responden a la vez, nadie ve las respuestas hasta el final y el resultado
- * aparece en todas las pantallas.
+ * Pestaña Juegos: el motor de rondas con «¿Quién es más probable que…?» (S2-09), «Adivina la
+ * canción» (#21) y «¿Quién la ha puesto?» (#22). Todos responden a la vez, nadie ve las respuestas
+ * hasta el final y el resultado aparece en todas las pantallas. El conductor no juega.
  */
 export default function JuegosScreen() {
   const { colors } = useTheme();
@@ -54,11 +55,16 @@ export default function JuegosScreen() {
   const revealedRef = useRef<string | null>(null);
 
   const isGuessWho = round?.game === 'quien_la_puso';
+  const isSongQuiz = round?.game === 'adivina_cancion';
   const probable = readPayload(round?.payload);
   const guess = useMemo(() => (isGuessWho ? readGuessWhoPayload(round?.payload) : null), [isGuessWho, round?.payload]);
+  const quiz = useMemo(() => (isSongQuiz ? readSongQuizPayload(round?.payload) : null), [isSongQuiz, round?.payload]);
   const probableOptions = probable.options;
-  const options = useMemo<readonly GameOption[]>(() => (guess ? guess.options : (probableOptions ?? [])), [guess, probableOptions]);
-  const totalSeconds = isGuessWho ? GUESS_WHO_SECONDS : PROBABLE_SECONDS;
+  const options = useMemo<readonly GameOption[]>(
+    () => (guess ? guess.options : quiz ? quiz.options : (probableOptions ?? [])),
+    [guess, quiz, probableOptions],
+  );
+  const totalSeconds = isGuessWho ? GUESS_WHO_SECONDS : isSongQuiz ? SONG_QUIZ_SECONDS : PROBABLE_SECONDS;
   const endsAt = round?.ends_at ? new Date(round.ends_at).getTime() : null;
   const secondsLeft = endsAt ? Math.max(0, Math.ceil((endsAt - now) / 1000)) : 0;
   const active = round?.status === 'activa';
@@ -76,7 +82,9 @@ export default function JuegosScreen() {
   useEffect(() => setSelected(null), [roundId]);
 
   // Revelar cuando se acaba el tiempo o han respondido todos. Varios móviles pueden pedirlo: no pasa nada.
-  const needed = isGuessWho ? expectedAnswers(members.map((member) => member.user_id), adderId) : members.length;
+  // El conductor conduce: no se espera su respuesta.
+  const playerIds = members.filter((member) => member.role !== 'conductor').map((member) => member.user_id);
+  const needed = isGuessWho ? expectedAnswers(playerIds, adderId) : playerIds.length;
   const everyone = needed > 0 && answeredBy.size >= needed;
   useEffect(() => {
     if (!active || roundId === null || revealedRef.current === roundId) return;
@@ -109,6 +117,7 @@ export default function JuegosScreen() {
   const startGame = async (game: GameId) => {
     if (game === 'probable') await startProbable();
     else if (game === 'quien_la_puso') await startGuess();
+    else if (game === 'adivina_cancion') await startSongQuiz(sessionId, SONG_QUIZ_SECONDS);
   };
 
   const start = async (game: GameId) => {
@@ -203,8 +212,16 @@ export default function JuegosScreen() {
             </View>
             {guess ? <GuessWhoSong title={guess.title} artist={guess.artist} albumArtUrl={guess.albumArtUrl} /> : null}
             <AppText variant="display" accessibilityRole="header">
-              {guess ? '¿Quién ha puesto esta canción?' : (probable.question ?? '¿…?')}
+              {guess ? '¿Quién ha puesto esta canción?' : quiz ? '¿Qué canción suena?' : (probable.question ?? '¿…?')}
             </AppText>
+            {quiz ? (
+              <View style={styles.progress}>
+                <Ionicons name="volume-high" size={18} color={colors.primary} />
+                <AppText variant="label" color={colors.textSecondary}>
+                  Escucha: suenan {quiz.clipSeconds} segundos en el coche
+                </AppText>
+              </View>
+            ) : null}
             <View style={styles.progress}>
               <Ionicons name="people" size={18} color={colors.textSecondary} />
               <AppText variant="label" color={colors.textSecondary}>
@@ -224,7 +241,11 @@ export default function JuegosScreen() {
             <>
               <OptionList options={options} selected={myOption} disabled={secondsLeft <= 0} onSelect={(id) => void vote(id)} />
               <AppText variant="caption" color={colors.textTertiary} style={styles.center}>
-                {myOption ? 'Puedes cambiar tu voto mientras quede tiempo.' : 'Toca a quien creas. Nadie verá los votos hasta el final.'}
+                {myOption
+                  ? 'Puedes cambiar tu voto mientras quede tiempo.'
+                  : quiz
+                    ? 'Toca la canción que creas. Nadie verá las respuestas hasta el final.'
+                    : 'Toca a quien creas. Nadie verá los votos hasta el final.'}
               </AppText>
             </>
           )}
@@ -234,7 +255,21 @@ export default function JuegosScreen() {
           <View style={styles.question}>
             <Glow cy={0.1} />
             <Badge label="Resultado" tone="primary" />
-            {guess ? (
+            {quiz ? (
+              solutionOption ? (
+                <View style={styles.winnerText}>
+                  <AppText variant="caption" color={colors.textSecondary}>
+                    Era…
+                  </AppText>
+                  <AppText variant="display" color={colors.primaryText}>
+                    {solutionOption.label}
+                  </AppText>
+                  {solutionOption.detail ? <AppText color={colors.textSecondary}>{solutionOption.detail}</AppText> : null}
+                </View>
+              ) : (
+                <ActivityIndicator color={colors.primary} />
+              )
+            ) : guess ? (
               <>
                 <GuessWhoSong title={guess.title} artist={guess.artist} albumArtUrl={guess.albumArtUrl} />
                 {solutionOption ? (
@@ -268,7 +303,7 @@ export default function JuegosScreen() {
           {canManage ? (
             <View style={styles.actions}>
               <Button
-                label={isGuessWho ? 'Otra canción' : 'Otra pregunta'}
+                label={isGuessWho || isSongQuiz ? 'Otra canción' : 'Otra pregunta'}
                 icon="refresh"
                 size="lg"
                 loading={starting !== null}
@@ -310,6 +345,7 @@ const makeStyles = (c: Palette) =>
       backgroundColor: c.primarySoft,
     },
     winner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 2 },
+    winnerText: { gap: 2 },
     flex: { flex: 1 },
     center: { textAlign: 'center' },
     actions: { gap: spacing.sm },

@@ -469,6 +469,8 @@ export type Database = {
       reveal_round: { Args: { p_round_id: string }; Returns: undefined };
       close_round: { Args: { p_round_id: string }; Returns: undefined };
       start_guess_who: { Args: { p_session_id: string; p_seconds?: number }; Returns: string };
+      start_song_quiz: { Args: { p_session_id: string; p_seconds?: number }; Returns: string };
+      get_song_clip: { Args: { p_round_id: string }; Returns: Json };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

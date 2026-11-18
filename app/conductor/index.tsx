@@ -19,6 +19,7 @@ import { useCurrentTrip } from '@/hooks/useCurrentTrip';
 import { useHostPlayer } from '@/hooks/useHostPlayer';
 import { useQueue } from '@/hooks/useQueue';
 import { useSession } from '@/hooks/useSession';
+import { useSongQuizHost } from '@/hooks/useSongQuizHost';
 import { useTripControls } from '@/hooks/useTripControls';
 import { useTripMetrics } from '@/hooks/useTripMetrics';
 import { carModelTitle } from '@/lib/carCatalog';
@@ -87,7 +88,9 @@ function DriverMode() {
   const tripStatus = session?.status ?? 'abierta';
   const running = tripStatus === 'en_curso';
   const playerEnabled = Platform.OS !== 'web' && isHost && spotify.connected && tripStatus !== 'finalizada';
-  const player = useHostPlayer(queue, playerEnabled);
+  // «Adivina la canción» (#21): mientras suena el fragmento, la cola espera.
+  const quiz = useSongQuizHost(playerEnabled);
+  const player = useHostPlayer(queue, playerEnabled && !quiz.playing);
 
   // Al abrir la hoja del precio, se rellena con el propuesto.
   useEffect(() => {
@@ -142,6 +145,8 @@ function DriverMode() {
         <DriverStats distanceM={metrics?.distance_m ?? 0} startedAt={session.startedAt} passengers={passengers.length} connected={connected} />
 
         <NowPlayingLine item={queue.nowPlaying} upcoming={queue.upcoming.length} />
+        {quiz.playing ? <Notice tone="info" message="Adivina la canción: suena un fragmento de 10 s y luego vuelve la cola." /> : null}
+        {quiz.error ? <Notice message={quiz.error} /> : null}
 
         {!running ? (
           <>
