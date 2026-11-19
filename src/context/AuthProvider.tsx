@@ -56,12 +56,15 @@ function cleanPatch(patch: ProfilePatch): ProfilePatch {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<ProfileRow | null>(null);
+  const [profileRow, setProfile] = useState<ProfileRow | null>(null);
   const [loading, setLoading] = useState(true);
   // Evita dos inicios de sesión anónimos a la vez (por ejemplo, con el modo estricto de React).
   const pendingAnonymous = useRef<Promise<User> | null>(null);
 
   const userId = session?.user.id ?? null;
+  // Solo vale el perfil del usuario con sesión: al cerrar sesión o cambiar de cuenta, el anterior
+  // deja de verse sin tener que vaciarlo.
+  const profile = userId !== null && profileRow?.id === userId ? profileRow : null;
 
   useEffect(() => {
     let active = true;
@@ -89,10 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // El perfil se carga fuera del callback de onAuthStateChange (Supabase recomienda no
   // llamar a la API dentro de él).
   useEffect(() => {
-    if (userId === null) {
-      setProfile(null);
-      return;
-    }
+    if (userId === null) return;
     let active = true;
     fetchProfile(userId)
       .then((row) => {
