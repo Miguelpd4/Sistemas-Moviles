@@ -61,40 +61,42 @@ export function useHostPlayer(queue: QueueState, enabled: boolean): HostPlayerSt
     await markPlaying(next.id);
   }, []);
 
-  const tick = useCallback(async () => {
-    if (busyRef.current) return;
+  // Con promesas encadenadas (no async/await en el useCallback): el estado solo cambia cuando
+  // responde Spotify, nunca en el mismo instante en que lo llama un efecto.
+  const tick = useCallback(() => {
+    if (busyRef.current) return Promise.resolve();
     busyRef.current = true;
-    try {
-      const snapshot = await getCurrentlyPlaying();
-      spotifyRef.current = snapshot;
-      setSpotify(snapshot);
+    return getCurrentlyPlaying()
+      .then(async (snapshot) => {
+        spotifyRef.current = snapshot;
+        setSpotify(snapshot);
 
-      const { items, nowPlaying, lastChange } = queueRef.current;
-      // La que sonaba puede haberse saltado por votación: ya no está en la lista.
-      const skipped = lastChange && lastChange.status === 'saltada' && lastChange.id === startedRef.current?.id ? lastChange : null;
-      const current = nowPlaying ?? skipped;
-      const hasQueue = items.some((item) => item.status === 'en_cola');
-      let action = playerAction({ current, spotify: snapshot, hasQueue });
+        const { items, nowPlaying, lastChange } = queueRef.current;
+        // La que sonaba puede haberse saltado por votación: ya no está en la lista.
+        const skipped = lastChange && lastChange.status === 'saltada' && lastChange.id === startedRef.current?.id ? lastChange : null;
+        const current = nowPlaying ?? skipped;
+        const hasQueue = items.some((item) => item.status === 'en_cola');
+        let action = playerAction({ current, spotify: snapshot, hasQueue });
 
-      // Recién pedida, Spotify aún puede decir la canción anterior.
-      const started = startedRef.current;
-      if (action === 'finish_current' && started && started.id === current?.id && Date.now() - started.at < START_GRACE_MS) {
-        action = 'wait';
-      }
+        // Recién pedida, Spotify aún puede decir la canción anterior.
+        const started = startedRef.current;
+        if (action === 'finish_current' && started && started.id === current?.id && Date.now() - started.at < START_GRACE_MS) {
+          action = 'wait';
+        }
 
-      if (action === 'finish_current' && current) {
-        await markFinished(current.id);
-        await playNext();
-      } else if (action === 'play_next') {
-        await playNext();
-      }
-      setError(null);
-      setNeedsDevice(false);
-    } catch (err) {
-      handleError(err);
-    } finally {
-      busyRef.current = false;
-    }
+        if (action === 'finish_current' && current) {
+          await markFinished(current.id);
+          await playNext();
+        } else if (action === 'play_next') {
+          await playNext();
+        }
+        setError(null);
+        setNeedsDevice(false);
+      })
+      .catch(handleError)
+      .finally(() => {
+        busyRef.current = false;
+      });
   }, [playNext, handleError]);
 
   // Bucle del reproductor.

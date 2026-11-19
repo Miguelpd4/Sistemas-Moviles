@@ -11,6 +11,15 @@ const MUSIC_GAMES = new Set(['dj']);
 /** Juegos con solución secreta: al revelarse se carga para mostrarla. */
 const SECRET_GAMES = new Set(['trivial', 'adivina_cancion', 'quien_la_puso']);
 
+const EMPTY_ANSWERED = { roundId: null, ids: new Set<string>() };
+const EMPTY_ANSWERS = { roundId: null, rows: [] };
+
+/** Añade `userId` a quienes han respondido a `roundId` (si la ronda cambió, empieza de cero). */
+function addAnswered(current: { roundId: string | null; ids: ReadonlySet<string> }, roundId: string, userId: string) {
+  if (current.roundId !== roundId) return { roundId, ids: new Set([userId]) };
+  return current.ids.has(userId) ? current : { roundId, ids: new Set([...current.ids, userId]) };
+}
+
 /**
  * La ronda de juego en pantalla (S2-09), o la de DJ con `kind = 'dj'` (#20): la activa o revelada
  * más reciente, quién ha respondido
@@ -19,22 +28,26 @@ const SECRET_GAMES = new Set(['trivial', 'adivina_cancion', 'quien_la_puso']);
 export function useActiveRound(kind: 'pantalla' | 'dj' = 'pantalla') {
   const { sessionId, on, myId } = useSession();
   const [rounds, setRounds] = useState<RoundRow[]>([]);
-  const [answeredBy, setAnsweredBy] = useState<ReadonlySet<string>>(new Set());
-  const [answers, setAnswers] = useState<AnswerRow[]>([]);
+  // Quién ha respondido y las respuestas van con el id de su ronda: al cambiar de ronda se
+  // descartan solas, sin vaciarlas dentro de un efecto.
+  const [answered, setAnswered] = useState<{ roundId: string | null; ids: ReadonlySet<string> }>(EMPTY_ANSWERED);
+  const [loadedAnswers, setLoadedAnswers] = useState<{ roundId: string | null; rows: AnswerRow[] }>(EMPTY_ANSWERS);
   const [loadedSolution, setLoadedSolution] = useState<{ roundId: string; value: Json | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const reload = useCallback(async () => {
-    try {
-      setRounds(await getRounds(sessionId));
-      setError(null);
-    } catch (err) {
-      setError(errorMessage(err, 'No se han podido cargar los juegos.'));
-    } finally {
-      setLoading(false);
-    }
-  }, [sessionId]);
+  // Con promesas encadenadas (no async/await): el estado solo cambia cuando llega la respuesta.
+  const reload = useCallback(
+    () =>
+      getRounds(sessionId)
+        .then((rows) => {
+          setRounds(rows);
+          setError(null);
+        })
+        .catch((err: unknown) => setError(errorMessage(err, 'No se han podido cargar los juegos.')))
+        .finally(() => setLoading(false)),
+    [sessionId],
+  );
 
   useEffect(() => {
     void reload();
@@ -64,25 +77,23 @@ export function useActiveRound(kind: 'pantalla' | 'dj' = 'pantalla') {
 
   // Quién ha respondido a la ronda activa.
   useEffect(() => {
-    setAnsweredBy(new Set());
     if (roundId === null) return;
     return on('ronda', (event) => {
       if (event.roundId !== roundId) return;
-      setAnsweredBy((current) => (current.has(event.userId) ? current : new Set([...current, event.userId])));
+      setAnswered((current) => addAnswered(current, roundId, event.userId));
     });
   }, [on, roundId]);
 
   // Respuestas: con la ronda activa, solo la mía; revelada, todas.
   useEffect(() => {
-    setAnswers([]);
     if (roundId === null) return;
     let active = true;
     getAnswers(roundId)
       .then((rows) => {
         if (!active) return;
-        setAnswers(rows);
+        setLoadedAnswers({ roundId, rows });
         if (rows.some((row) => row.user_id === myId) && myId !== null) {
-          setAnsweredBy((current) => new Set([...current, myId]));
+          setAnswered((current) => addAnswered(current, roundId, myId));
         }
       })
       .catch(() => undefined);
@@ -130,6 +141,8 @@ export function useActiveRound(kind: 'pantalla' | 'dj' = 'pantalla') {
     [rounds],
   );
 
+  const answeredBy = answered.roundId === roundId ? answered.ids : EMPTY_ANSWERED.ids;
+  const answers = loadedAnswers.roundId === roundId ? loadedAnswers.rows : EMPTY_ANSWERS.rows;
   const myAnswer = answers.find((row) => row.user_id === myId) ?? null;
 
   return {
@@ -143,7 +156,13 @@ export function useActiveRound(kind: 'pantalla' | 'dj' = 'pantalla') {
     loading,
     error,
     reload,
-    markAnswered: (userId: string) => setAnsweredBy((current) => new Set([...current, userId])),
-    setMyAnswerLocal: (row: AnswerRow) => setAnswers((list) => [...list.filter((item) => item.user_id !== row.user_id), row]),
+    markAnswered: (userId: string) => {
+      if (roundId !== null) setAnswered((current) => addAnswered(current, roundId, userId));
+    },
+    setMyAnswerLocal: (row: AnswerRow) =>
+      setLoadedAnswers((current) => {
+        const rows = current.roundId === row.round_id ? current.rows : [];
+        return { roundId: row.round_id, rows: [...rows.filter((item) => item.user_id !== row.user_id), row] };
+      }),
   };
 }

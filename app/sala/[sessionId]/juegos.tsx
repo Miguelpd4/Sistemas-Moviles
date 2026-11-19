@@ -49,7 +49,9 @@ export default function JuegosScreen() {
     useActiveRound();
   const queue = useQueue();
   const [starting, setStarting] = useState<string | null>(null);
-  const [selected, setSelected] = useState<string | null>(null);
+  // Lo que he elegido va con su ronda: en una ronda nueva se olvida solo.
+  const [picked, setPicked] = useState<{ roundId: string; option: string } | null>(null);
+  const selected = picked !== null && picked.roundId === round?.id ? picked.option : null;
   const [actionError, setActionError] = useState<string | null>(null);
   const now = useNow(500);
   const revealedRef = useRef<string | null>(null);
@@ -77,9 +79,7 @@ export default function JuegosScreen() {
   const adderId = guess?.queueId ? (queue.items.find((item) => item.id === guess.queueId)?.added_by ?? null) : null;
   const iPutIt = isGuessWho && adderId !== null && adderId === myId;
 
-  // Nueva ronda: se olvida la elección anterior.
   const roundId = round?.id ?? null;
-  useEffect(() => setSelected(null), [roundId]);
 
   // Revelar cuando se acaba el tiempo o han respondido todos. Varios móviles pueden pedirlo: no pasa nada.
   // El conductor conduce: no se espera su respuesta.
@@ -135,7 +135,7 @@ export default function JuegosScreen() {
   const vote = async (option: string) => {
     if (round === null || myId === null) return;
     vibrate();
-    setSelected(option);
+    setPicked({ roundId: round.id, option });
     setActionError(null);
     try {
       await submitAnswer(round.id, { option });
@@ -143,7 +143,7 @@ export default function JuegosScreen() {
       markAnswered(myId);
       send('ronda', { roundId: round.id, userId: myId });
     } catch (err) {
-      setSelected(null);
+      setPicked(null);
       setActionError(errorMessage(err));
     }
   };

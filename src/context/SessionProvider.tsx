@@ -71,7 +71,8 @@ export function SessionProvider({ sessionId, children }: Props) {
   const [allMembers, setAllMembers] = useState<SessionMember[]>([]);
   const [online, setOnline] = useState<ReadonlySet<string>>(new Set());
   const [status, setStatus] = useState<RoomStatus>('conectando');
-  const [loading, setLoading] = useState(true);
+  /** Para qué viaje ha terminado la última carga (con éxito o con error). */
+  const [settledFor, setSettledFor] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const roomRef = useRef<RoomHandle | null>(null);
@@ -79,23 +80,25 @@ export function SessionProvider({ sessionId, children }: Props) {
   // se ejecutan antes que los del proveedor) y el canal le reenvía todo.
   const [local] = useState(() => createEmitter<RoomEvents>());
 
-  const reload = useCallback(async () => {
-    try {
-      const [nextSession, nextMembers] = await Promise.all([getSessionWithCar(sessionId), getSessionMembers(sessionId)]);
-      setSession(nextSession);
-      setAllMembers(nextMembers);
-      setError(null);
-      setLoaded(true);
-    } catch (err) {
-      setError(errorMessage(err, 'No se ha podido cargar el viaje.'));
-    } finally {
-      setLoading(false);
-    }
-  }, [sessionId]);
+  // Con promesas encadenadas (no async/await): el estado solo cambia cuando llega la respuesta.
+  const reload = useCallback(
+    () =>
+      Promise.all([getSessionWithCar(sessionId), getSessionMembers(sessionId)])
+        .then(([nextSession, nextMembers]) => {
+          setSession(nextSession);
+          setAllMembers(nextMembers);
+          setError(null);
+          setLoaded(true);
+        })
+        .catch((err: unknown) => setError(errorMessage(err, 'No se ha podido cargar el viaje.')))
+        .finally(() => setSettledFor(sessionId)),
+    [sessionId],
+  );
+  // Cargando hasta que termina la primera carga de este viaje.
+  const loading = settledFor !== sessionId;
 
   // Carga inicial y al volver a primer plano (por si se perdió algún evento).
   useEffect(() => {
-    setLoading(true);
     void reload();
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') void reload();

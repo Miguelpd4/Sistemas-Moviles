@@ -42,7 +42,7 @@ export function Sheet({ visible, title, description, onClose, children, dark = f
 const makeStyles = (c: Palette) =>
   StyleSheet.create({
     flex: { flex: 1, justifyContent: 'flex-end' },
-    backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: c.overlay },
+    backdrop: { ...StyleSheet.absoluteFill, backgroundColor: c.overlay },
     sheet: {
       backgroundColor: c.surfaceRaised,
       borderTopLeftRadius: radius.lg,

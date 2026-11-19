@@ -19,16 +19,18 @@ export function useQueue() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const reload = useCallback(async () => {
-    try {
-      setItems(await getQueue(sessionId));
-      setError(null);
-    } catch (err) {
-      setError(errorMessage(err, 'No se ha podido cargar la cola.'));
-    } finally {
-      setLoading(false);
-    }
-  }, [sessionId]);
+  // Con promesas encadenadas (no async/await): el estado solo cambia cuando llega la respuesta.
+  const reload = useCallback(
+    () =>
+      getQueue(sessionId)
+        .then((rows) => {
+          setItems(rows);
+          setError(null);
+        })
+        .catch((err: unknown) => setError(errorMessage(err, 'No se ha podido cargar la cola.')))
+        .finally(() => setLoading(false)),
+    [sessionId],
+  );
 
   useEffect(() => {
     void reload();

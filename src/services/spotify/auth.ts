@@ -22,23 +22,24 @@ export function useSpotifyLogin() {
     SPOTIFY_DISCOVERY,
   );
   const [connected, setConnected] = useState(false);
-  const [busy, setBusy] = useState(false);
+  /** Código de Spotify ya cambiado por tokens (con éxito o no). */
+  const [settledCode, setSettledCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(clientId ? null : 'Falta EXPO_PUBLIC_SPOTIFY_CLIENT_ID en .env.');
+  /** Respuesta de error que el usuario ya ha descartado al volver a intentarlo. */
+  const [dismissed, setDismissed] = useState<typeof response>(null);
 
   useEffect(() => {
     void loadTokens().then((tokens) => setConnected(tokens !== null));
   }, []);
 
-  useEffect(() => {
-    if (response?.type === 'error') {
-      setError(response.error?.message ?? 'Spotify ha rechazado el inicio de sesión.');
-      return;
-    }
-    if (response?.type !== 'success' || !request?.codeVerifier) return;
-    const code = response.params.code;
-    if (!code) return;
+  const code = response?.type === 'success' ? (response.params.code ?? null) : null;
+  const busy = code !== null && settledCode !== code;
+  const responseError =
+    response?.type === 'error' && response !== dismissed ? (response.error?.message ?? 'Spotify ha rechazado el inicio de sesión.') : null;
 
-    setBusy(true);
+  useEffect(() => {
+    // Cada código se cambia una sola vez.
+    if (code === null || code === settledCode || !request?.codeVerifier) return;
     exchangeCodeAsync(
       { clientId, code, redirectUri, extraParams: { code_verifier: request.codeVerifier } },
       SPOTIFY_DISCOVERY,
@@ -54,18 +55,19 @@ export function useSpotifyLogin() {
         setError(null);
       })
       .catch((err: unknown) => setError(errorMessage(err, 'No se ha podido conectar con Spotify.')))
-      .finally(() => setBusy(false));
-  }, [response, request, clientId, redirectUri]);
+      .finally(() => setSettledCode(code));
+  }, [code, settledCode, request, clientId, redirectUri]);
 
   const login = useCallback(() => {
     setError(null);
+    setDismissed(response);
     void promptAsync();
-  }, [promptAsync]);
+  }, [promptAsync, response]);
 
   const logout = useCallback(async () => {
     await clearTokens();
     setConnected(false);
   }, []);
 
-  return { ready: request !== null && clientId !== '', connected, busy, error, login, logout, redirectUri };
+  return { ready: request !== null && clientId !== '', connected, busy, error: responseError ?? error, login, logout, redirectUri };
 }

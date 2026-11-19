@@ -22,42 +22,45 @@ export function SearchBox({ full, onAdd }: Props) {
   const { colors, scheme } = useTheme();
   const [text, setText] = useState('');
   const query = useDebouncedValue(text.trim(), 400);
-  const [results, setResults] = useState<SpotifyTrack[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  // El resultado va con la búsqueda que lo pidió: así se sabe si está buscando sin guardarlo aparte.
+  const searchKey = `${attempt}:${query}`;
+  const [found, setFound] = useState<{ key: string; tracks: SpotifyTrack[]; error: string | null } | null>(null);
+  /** Error al añadir una canción. */
+  const [addError, setAddError] = useState<string | null>(null);
   const [adding, setAdding] = useState<string | null>(null);
   const [added, setAdded] = useState<ReadonlySet<string>>(new Set());
 
+  const tooShort = query.length < 2;
   useEffect(() => {
-    if (query.length < 2) {
-      setResults([]);
-      setError(null);
-      return;
-    }
+    if (tooShort) return;
     let active = true;
-    setSearching(true);
     searchTracks(query)
       .then((tracks) => {
-        if (!active) return;
-        setResults(tracks);
-        setError(null);
+        if (active) setFound({ key: searchKey, tracks, error: null });
       })
-      .catch((err: unknown) => active && setError(errorMessage(err, 'No se ha podido buscar.')))
-      .finally(() => active && setSearching(false));
+      .catch((err: unknown) => {
+        // Si falla, se dejan los resultados que había.
+        if (active) setFound((prev) => ({ key: searchKey, tracks: prev?.tracks ?? [], error: errorMessage(err, 'No se ha podido buscar.') }));
+      });
     return () => {
       active = false;
     };
-  }, [query, attempt]);
+  }, [query, searchKey, tooShort]);
+
+  const searching = !tooShort && found?.key !== searchKey;
+  // Mientras busca se siguen viendo los resultados anteriores.
+  const results = tooShort ? [] : (found?.tracks ?? []);
+  const error = addError ?? (tooShort || searching ? null : (found?.error ?? null));
 
   const add = async (track: SpotifyTrack) => {
     setAdding(track.id);
-    setError(null);
+    setAddError(null);
     try {
       await onAdd(track);
       setAdded((current) => new Set([...current, track.id]));
     } catch (err) {
-      setError(errorMessage(err));
+      setAddError(errorMessage(err));
     } finally {
       setAdding(null);
     }
@@ -69,7 +72,10 @@ export function SearchBox({ full, onAdd }: Props) {
         <Ionicons name="search" size={20} color={colors.textTertiary} />
         <TextInput
           value={text}
-          onChangeText={setText}
+          onChangeText={(value) => {
+            setText(value);
+            setAddError(null);
+          }}
           placeholder="Busca una canción o artista"
           placeholderTextColor={colors.textTertiary}
           selectionColor={colors.primary}
@@ -92,7 +98,15 @@ export function SearchBox({ full, onAdd }: Props) {
       {error ? (
         <View style={styles.error}>
           <Notice message={error} />
-          <Button label="Reintentar" variant="secondary" icon="refresh" onPress={() => setAttempt((n) => n + 1)} />
+          <Button
+            label="Reintentar"
+            variant="secondary"
+            icon="refresh"
+            onPress={() => {
+              setAddError(null);
+              setAttempt((n) => n + 1);
+            }}
+          />
         </View>
       ) : null}
 

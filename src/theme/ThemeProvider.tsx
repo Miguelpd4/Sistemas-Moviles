@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { StyleSheet, useColorScheme } from 'react-native';
+import { useColorScheme, type ImageStyle, type TextStyle, type ViewStyle } from 'react-native';
 
 import { darkColors, elevationFor, lightColors, type Palette } from './tokens';
 
@@ -71,7 +71,8 @@ export function useTheme(): ThemeValue {
   return useContext(ThemeContext);
 }
 
-type NamedStyles = StyleSheet.NamedStyles<unknown>;
+/** Lo que devuelve `StyleSheet.create` (React Native 0.88 ya no exporta `StyleSheet.NamedStyles`). */
+type NamedStyles = Readonly<Record<string, ViewStyle | TextStyle | ImageStyle>>;
 
 /**
  * Estilos que dependen del tema. Se declaran fuera del componente:

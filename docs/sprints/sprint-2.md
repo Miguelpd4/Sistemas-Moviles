@@ -78,7 +78,8 @@ El guion completo de pruebas en móviles reales (Spotify Premium, GPS en coche y
 
 - Jest: `emitter`, `cooldown`, `queue` (`nextTrack`, `playerAction`, `votesNeeded`), `tripStatus` (`canFinish`, formatos, precio), `probable`, `tally`, `quienLaPuso`, `adivinaCancion` y `dj`. En total, 135 pruebas en verde.
 - pgTAP: `sala_rls.test.sql` y `musica_juegos.test.sql` con todos los casos del plan; `quien_la_puso.test.sql` (14), `adivina_cancion.test.sql` (15) y `turnos_dj.test.sql` (15).
-  - `adivina_cancion` y `turnos_dj` se han pasado contra el proyecto remoto dentro de una transacción con `rollback`. `quien_la_puso` está sin ejecutar: hace falta `npm run test:db` con Docker.
+  - `adivina_cancion`, `turnos_dj` y `quien_la_puso` (14 de 14, el 19 nov) se han pasado contra el proyecto remoto dentro de una transacción que se deshace al acabar. Con Docker, `npm run test:db` las pasa todas en local.
+- `npm run typecheck` y `npm run lint` sin errores (19 nov): React Native 0.88 quitó `StyleSheet.absoluteFillObject` y `StyleSheet.NamedStyles`, y las reglas del React Compiler no dejan cambiar el estado nada más empezar un efecto. Las cargas usan promesas encadenadas y el estado que depende de una ronda, canción o usuario se guarda con su id, en vez de vaciarlo en un efecto.
 
 ## Retrospectiva
 
