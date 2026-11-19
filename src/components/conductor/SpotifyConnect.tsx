@@ -16,7 +16,12 @@ type Props = {
   onConnect: () => void;
 };
 
-/** Estado de Spotify en el Modo conductor: conectar la cuenta o ver que está sonando. */
+const isWeb = Platform.OS === 'web';
+
+/**
+ * Estado de Spotify en el Modo conductor: conectar la cuenta o ver que está sonando. Desde la web
+ * (para pruebas) no suena en el navegador: controla la app de Spotify abierta con la cuenta.
+ */
 export function SpotifyConnect({ connected, ready, busy, error, playerError, isPlaying, onConnect }: Props) {
   const [account, setAccount] = useState<string | null>(null);
 
@@ -31,8 +36,6 @@ export function SpotifyConnect({ connected, ready, busy, error, playerError, isP
     };
   }, [connected]);
 
-  if (Platform.OS === 'web') return null;
-
   return (
     <View style={styles.box}>
       <View style={styles.row}>
@@ -44,12 +47,21 @@ export function SpotifyConnect({ connected, ready, busy, error, playerError, isP
           <AppText variant="caption" color={driverColors.textSecondary}>
             {connected
               ? isPlaying
-                ? 'Sonando la cola de la sala en este móvil.'
+                ? isWeb
+                  ? 'Sonando la cola de la sala en tu app de Spotify.'
+                  : 'Sonando la cola de la sala en este móvil.'
                 : 'Esperando canciones de la cola.'
-              : 'Conecta tu cuenta Premium para que suene la cola de la sala.'}
+              : isWeb
+                ? 'Conecta tu cuenta Premium y deja abierta la app de Spotify (en el ordenador o en el móvil): sonará ahí.'
+                : 'Conecta tu cuenta Premium para que suene la cola de la sala.'}
           </AppText>
         </View>
       </View>
+      {isWeb && connected ? (
+        <AppText variant="caption" color={driverColors.textSecondary}>
+          Deja esta pestaña abierta y a la vista: si el navegador la pone en segundo plano, la cola tarda en pasar de canción.
+        </AppText>
+      ) : null}
       {playerError ? (
         <AppText variant="bodyStrong" color={driverColors.accent}>
           {playerError}

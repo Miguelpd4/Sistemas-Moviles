@@ -1,24 +1,31 @@
 import { AppError } from '@/lib/errors';
-import type { SpotifyTokens } from '@/types/spotify';
 
-/** En la web nadie reproduce: solo el móvil Android del conductor se conecta a Spotify. */
-const notAvailable = () => new AppError('La reproducción de Spotify solo funciona en el móvil del conductor.');
+import { createTokenStore } from './tokenStore';
 
-export async function saveTokens(_tokens: SpotifyTokens): Promise<void> {
-  throw notAvailable();
+const KEY = 'copi.spotify.tokens';
+
+/** localStorage puede no existir o estar bloqueado (modo privado, cookies desactivadas). */
+function storage(): Storage | null {
+  try {
+    return typeof window !== 'undefined' ? window.localStorage : null;
+  } catch {
+    return null;
+  }
 }
-export async function loadTokens(): Promise<SpotifyTokens | null> {
-  return null;
-}
-export async function clearTokens(): Promise<void> {
-  // Nada guardado en la web.
-}
-export async function getValidAccessToken(): Promise<string> {
-  throw notAvailable();
-}
-export async function refreshTokens(_tokens: SpotifyTokens): Promise<string> {
-  throw notAvailable();
-}
-export async function expireTokensForTesting(): Promise<void> {
-  // Nada guardado en la web.
-}
+
+/**
+ * Tokens de Spotify del conductor en la web (Modo conductor desde el navegador, para pruebas).
+ * Van en localStorage: menos protegidos que en el móvil, por eso solo se guarda esto y se borran
+ * al desconectar o si la renovación falla.
+ */
+export const { saveTokens, loadTokens, clearTokens, getValidAccessToken, refreshTokens, expireTokensForTesting } = createTokenStore({
+  read: async () => storage()?.getItem(KEY) ?? null,
+  write: async (value) => {
+    const store = storage();
+    if (!store) throw new AppError('Este navegador no deja guardar datos: no se puede conectar Spotify.');
+    store.setItem(KEY, value);
+  },
+  remove: async () => {
+    storage()?.removeItem(KEY);
+  },
+});

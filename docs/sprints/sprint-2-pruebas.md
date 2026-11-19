@@ -64,6 +64,7 @@ Haced lo mismo con los móviles Android de los pasajeros, o pasadles el APK que 
 - [ ] **B8. Cola vacía.** Cuando suena la última, al acabar la música se para. Al añadir otra, vuelve a sonar sola.
 - [ ] **B9. Spotify cerrado.** Se cierra Spotify en el móvil del conductor: el Modo conductor pide abrir Spotify. Al abrirlo, la cola sigue.
 - [ ] **B10. Una hora después.** Tras más de una hora conectados, la música sigue (el token se renueva solo).
+- [ ] **B11. Desde la web (sin compilar).** El conductor abre el Modo conductor en el navegador del ordenador (`https://copi-navy.vercel.app`), con la app de Spotify abierta con la cuenta Premium en el ordenador o en el móvil. «Conectar Spotify» abre una ventana, vuelve con la cuenta conectada y la cola suena en esa app de Spotify. Requiere la Redirect URI `https://copi-navy.vercel.app/spotify-auth` en Spotify for Developers.
 
 ## C · GPS en coche (S2-08)
 

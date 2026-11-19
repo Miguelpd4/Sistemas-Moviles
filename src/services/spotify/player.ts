@@ -1,9 +1,14 @@
+import { Platform } from 'react-native';
+
 import { AppError } from '@/lib/errors';
 import type { PlaybackState, SpotifyDevice } from '@/types/spotify';
 
 import { getValidAccessToken, loadTokens, refreshTokens } from './tokens';
 
-/** Control de la reproducción en el móvil del conductor con la Web API de Spotify (S1-09). */
+/**
+ * Control de la reproducción con la Web API de Spotify (S1-09): manda sobre la app de Spotify que
+ * el conductor tenga abierta con su cuenta (la del móvil o, desde la web, la del ordenador).
+ */
 
 const API = 'https://api.spotify.com/v1/me/player';
 
@@ -43,7 +48,12 @@ async function call(path: string, init: Init = {}, retried = false): Promise<Res
     });
   }
   if (response.status === 404) {
-    throw new AppError('Abre Spotify en este móvil y vuelve a intentarlo.', { code: 'NO_ACTIVE_DEVICE' });
+    throw new AppError(
+      Platform.OS === 'web'
+        ? 'Abre la app de Spotify (en el ordenador o en el móvil) con tu cuenta y vuelve a intentarlo.'
+        : 'Abre Spotify en este móvil y vuelve a intentarlo.',
+      { code: 'NO_ACTIVE_DEVICE' },
+    );
   }
   if (response.status === 429) {
     throw new AppError('Demasiadas peticiones a Spotify. Espera unos segundos.', { code: 'SPOTIFY_RATE_LIMIT' });
@@ -64,15 +74,18 @@ export async function transferTo(deviceId: string): Promise<void> {
   await call('', { method: 'PUT', body: { device_ids: [deviceId], play: false } });
 }
 
-/** El dispositivo de este móvil: el activo, o el primero de tipo Smartphone. */
-async function findPhoneDevice(): Promise<SpotifyDevice | null> {
-  const devices = await getDevices();
-  return devices.find((d) => d.is_active) ?? devices.find((d) => d.type.toLowerCase() === 'smartphone') ?? null;
+/**
+ * Dónde poner la música: el dispositivo activo, si no el móvil y, si no hay móvil (Modo conductor
+ * desde la web), cualquier app de Spotify abierta con la cuenta.
+ */
+async function findPlaybackDevice(): Promise<SpotifyDevice | null> {
+  const devices = (await getDevices()).filter((d) => !d.is_restricted);
+  return devices.find((d) => d.is_active) ?? devices.find((d) => d.type.toLowerCase() === 'smartphone') ?? devices[0] ?? null;
 }
 
 /**
- * Reproduce una canción desde `positionMs`. Si Spotify no tiene dispositivo activo, busca el del
- * móvil, le pasa la reproducción y reintenta una vez.
+ * Reproduce una canción desde `positionMs`. Si Spotify no tiene dispositivo activo, busca uno,
+ * le pasa la reproducción y reintenta una vez.
  */
 export async function playTrack(trackId: string, positionMs = 0): Promise<void> {
   const body = { uris: [`spotify:track:${trackId}`], position_ms: Math.max(0, Math.round(positionMs)) };
@@ -80,7 +93,7 @@ export async function playTrack(trackId: string, positionMs = 0): Promise<void> 
     await call('/play', { method: 'PUT', body });
   } catch (error) {
     if (!(error instanceof AppError) || error.code !== 'NO_ACTIVE_DEVICE') throw error;
-    const device = await findPhoneDevice();
+    const device = await findPlaybackDevice();
     if (!device?.id) throw error;
     await transferTo(device.id);
     await call('/play', { method: 'PUT', body, query: `device_id=${encodeURIComponent(device.id)}` });
