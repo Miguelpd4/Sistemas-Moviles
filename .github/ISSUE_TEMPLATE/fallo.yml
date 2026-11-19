@@ -1,0 +1,53 @@
+name: Algo falla
+description: Un fallo encontrado probando la app (por ejemplo, con el guion de pruebas en móviles reales).
+title: "<Qué ha pasado>"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ponle la **etiqueta del módulo** (`musica`, `gastos`, `juegos`…) y el **milestone** del sprint en curso.
+  - type: input
+    id: prueba
+    attributes:
+      label: Prueba
+      description: Código de la prueba del guion, si viene de ahí.
+      placeholder: D6
+    validations:
+      required: false
+  - type: input
+    id: movil
+    attributes:
+      label: Móvil y versión
+      description: Modelo, versión de Android o iOS, y si era la app o la web.
+      placeholder: Pixel 7, Android 15, app release
+    validations:
+      required: true
+  - type: textarea
+    id: pasos
+    attributes:
+      label: Pasos para repetirlo
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: esperado
+    attributes:
+      label: Qué esperabais
+    validations:
+      required: true
+  - type: textarea
+    id: pasado
+    attributes:
+      label: Qué ha pasado
+      description: Mensaje que salió en la app, si salió alguno.
+    validations:
+      required: true
+  - type: textarea
+    id: captura
+    attributes:
+      label: Captura o vídeo
+      description: Arrástralos aquí si los tienes.
+    validations:
+      required: false

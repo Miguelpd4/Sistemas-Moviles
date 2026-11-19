@@ -1,0 +1,39 @@
+name: Historia de usuario
+description: Una tarea del backlog (una issue por historia).
+title: "Como <rol>, quiero <qué> "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ponle la **etiqueta del módulo** (`entrada`, `sala`, `musica`, `gastos`, `viaje`, `juegos`, `perfil`, `backend`, `infra`…),
+        la **prioridad** (`must`, `should`, `could`) y el **sprint** como milestone.
+  - type: textarea
+    id: historia
+    attributes:
+      label: Historia
+      description: Quién lo quiere, qué quiere y para qué.
+      placeholder: Como pasajero, quiero añadir peajes con foto del ticket para que se repartan con la gasolina.
+    validations:
+      required: true
+  - type: textarea
+    id: criterios
+    attributes:
+      label: Criterios de aceptación
+      description: Lo que tiene que pasar en el móvil para darla por buena.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: tecnico
+    attributes:
+      label: Notas técnicas
+      description: Tablas y políticas RLS, RPC, Edge Functions, pantallas o hooks que toca.
+    validations:
+      required: false
+  - type: markdown
+    attributes:
+      value: |
+        **Definición de hecho:** funciona en un Android real (y en la web si aplica), maneja errores, la lógica tiene prueba,
+        las tablas nuevas tienen RLS y otra persona ha aprobado la PR.
