@@ -57,7 +57,7 @@ export function StopBanner() {
 }
 
 const styles = StyleSheet.create({
-  overlay: { ...StyleSheet.absoluteFillObject, zIndex: 30, justifyContent: 'center', padding: spacing.lg, backgroundColor: driverColors.background },
+  overlay: { ...StyleSheet.absoluteFill, zIndex: 30, justifyContent: 'center', padding: spacing.lg, backgroundColor: driverColors.background },
   banner: {
     alignItems: 'center',
     gap: spacing.sm,
