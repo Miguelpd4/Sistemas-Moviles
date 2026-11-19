@@ -92,10 +92,14 @@ function DriverMode() {
   const quiz = useSongQuizHost(playerEnabled);
   const player = useHostPlayer(queue, playerEnabled && !quiz.playing);
 
-  // Al abrir la hoja del precio, se rellena con el propuesto.
-  useEffect(() => {
-    if (trip.phase === 'price') setPrice(trip.suggestedPrice);
-  }, [trip.phase, trip.suggestedPrice]);
+  // Al abrir la hoja del precio, se rellena con el propuesto (ajuste durante el render, como
+  // recomienda React para el estado que depende de otro valor, en vez de un efecto).
+  const priceKey = trip.phase === 'price' ? trip.suggestedPrice : null;
+  const [prevPriceKey, setPrevPriceKey] = useState<string | null>(null);
+  if (priceKey !== prevPriceKey) {
+    setPrevPriceKey(priceKey);
+    if (priceKey !== null) setPrice(priceKey);
+  }
 
   const passengers = members.filter((member) => member.role !== 'conductor');
   const connected = passengers.filter((member) => online.has(member.user_id)).length;

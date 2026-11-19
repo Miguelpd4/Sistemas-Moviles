@@ -34,10 +34,14 @@ function DevGps() {
   const [priceInfo, setPriceInfo] = useState<string | null>(null);
   const [loadingPrice, setLoadingPrice] = useState(false);
 
-  const refresh = useCallback(async () => {
-    setTracking(await isTracking());
-    setPoints(await loadPoints());
-  }, []);
+  const refresh = useCallback(
+    () =>
+      Promise.all([isTracking(), loadPoints()]).then(([nowTracking, nextPoints]) => {
+        setTracking(nowTracking);
+        setPoints(nextPoints);
+      }),
+    [],
+  );
 
   useEffect(() => {
     void refresh();

@@ -1,4 +1,4 @@
-import { averageSpeedKmh, canFinish, fuelCacheKey } from '../tripStatus';
+import { averageSpeedKmh, canFinish, formatFuelPrice, fuelCacheKey, parseFuelPrice } from '../tripStatus';
 import { formatDuration, formatKm } from '../format';
 
 describe('canFinish', () => {
@@ -34,8 +34,6 @@ describe('formatos del viaje', () => {
     expect(fuelCacheKey('diesel', 37.8847, -4.7791)).toBe('diesel:37.9,-4.8');
   });
 });
-
-import { formatFuelPrice, parseFuelPrice } from '../tripStatus';
 
 describe('precio del combustible', () => {
   it('acepta coma o punto y rechaza lo absurdo', () => {
