@@ -9,7 +9,7 @@ Objetivo: tocar la pegatina con un Android o un iPhone y aparecer en la sala del
 | S1-01 | Cliente de Supabase, sesión (anónima y conductor), errores en español | Código hecho |
 | S1-02 | Migración `nucleo_tablas`, RLS, Storage, pruebas pgTAP (21) | Código hecho |
 | S1-03 | Migración `nucleo_rpc` (`start_session`, `get_session_preview`, `join_session`), pruebas pgTAP (26) | Código hecho |
-| S1-04 | `app.config.ts` con App Link, `assetlinks.json`, `vercel.json` | Código hecho · web publicada en copi-navy.vercel.app · huella de depuración puesta, falta comprobarla (ver abajo) |
+| S1-04 | `app.config.ts` con App Link, `assetlinks.json`, `vercel.json` | Código hecho · web publicada en copi-navy.vercel.app · huella comprobada (ver abajo) · falta tocar la pegatina con la app instalada |
 | S1-05 | Lector NFC en la app, `parseCarCodeFromUrl` | Código hecho · pegatina grabada y probada en la web |
 | S1-06 | Entrada tipo Kahoot: bienvenida, nombre y personaje, asiento, espera | Código hecho |
 | S1-07 | Mi coche: cuenta de conductor, coche, código de pegatina | Código hecho |
@@ -28,9 +28,10 @@ Cada historia pasa a *Hecho* cuando cumple sus criterios de aceptación en un m�
 ## Lo que queda para cerrar el sprint
 
 1. **App Link (S1-04).** `assetlinks.json` lleva la huella del certificado de depuración que usan los
-   proyectos de Expo. Comprobadlo: en el ordenador donde compiláis, `cd android && ./gradlew signingReport`
-   y mirad la línea `SHA-256` de la variante `debug`. Si no coincide, cambiadla en
-   `public/.well-known/assetlinks.json`. Después: publicar en Vercel, abrir
+   proyectos de Expo. **Comprobada el 19 nov:** la plantilla de `npx expo prebuild` del SDK 58 trae ese
+   mismo `debug.keystore` (SHA-256 `FA:C6:17:…:3B:9C`) y también firma con él la versión release, así que
+   vale para `npx expo run:android` y para `--variant release`. Solo cambiaría si alguien usa un keystore
+   propio (`cd android && ./gradlew signingReport` lo dice). Falta: abrir
    `https://copi-navy.vercel.app/.well-known/assetlinks.json` para ver que sale el JSON, reinstalar la app
    (`npx expo run:android`) y tocar la pegatina: debe abrirse Copi, no el navegador.
    Si sigue abriendo el navegador: Ajustes → Aplicaciones → Copi → Abrir de forma predeterminada →
@@ -42,7 +43,7 @@ Cada historia pasa a *Hecho* cuando cumple sus criterios de aceptación en un m�
 3. **GPS y carburantes (S1-10).** Un trayecto real de 10–15 minutos con la prueba de GPS y una consulta de
    precio. Rellenar las conclusiones.
 4. **Ensayo de la demo** con la lista de abajo.
-5. **PR** `feat/sprint-1` → `main`, revisada y aprobada por otra persona.
+5. ~~**PR** `feat/sprint-1` → `main`, revisada y aprobada por otra persona.~~ Hecho (PR #40).
 
 ## Conclusiones de las pruebas técnicas (rellenar)
 
