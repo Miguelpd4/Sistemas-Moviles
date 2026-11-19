@@ -19,7 +19,7 @@ Requisitos: Node 20 o superior; para Android, Android Studio y un móvil con la 
 ```bash
 npm install
 npx expo install --fix     # ajusta los paquetes nativos a las versiones exactas del SDK 58
-cp .env.example .env       # y rellena las variables (paso 3)
+cp .env.example .env       # ya trae los valores públicos del proyecto (paso 3)
 ```
 
 ### 2. Supabase (una persona, una vez)
@@ -46,7 +46,7 @@ Para trabajar en local (con Docker): `npx supabase start`, `npx supabase db rese
 
 ### 3. Variables de entorno
 
-Rellena `.env` (ver comentarios en `.env.example`): URL y clave publicable de Supabase, dominio de Vercel (`EXPO_PUBLIC_WEB_URL`, obligatorio) y el *Client ID* de Spotify.
+`.env.example` ya trae los valores del proyecto (URL y clave publicable de Supabase, dominio de Vercel y *Client ID* de Spotify): basta con copiarlo a `.env`. Son todos públicos; el *Client secret* de Spotify y la clave `service_role` van solo en Supabase → Edge Functions → Secrets.
 
 ### 4. Web en Vercel (pasajeros con iPhone)
 
