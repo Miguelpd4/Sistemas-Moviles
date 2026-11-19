@@ -19,6 +19,8 @@ export type SpotifyDevice = {
   name: string;
   type: string;
   is_active: boolean;
+  /** Dispositivos que no aceptan órdenes por la Web API (algunos altavoces y televisores). */
+  is_restricted?: boolean;
 };
 
 export type PlaybackState = {

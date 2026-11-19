@@ -11,7 +11,7 @@ Proyecto de la asignatura de Sistemas Móviles (Universidad de Córdoba), grupo 
   - Android: la URL abre la app (intent filter / App Link).
   - iPhone: el sistema lee la pegatina y abre la web en Safari.
 - **Sin Expo Go**: el NFC necesita *development build* (`react-native-nfc-manager` + su config plugin).
-- **Música**: la cola vive en Supabase. Solo el conductor se autentica en Spotify (PKCE, Premium) y su móvil reproduce. Los pasajeros buscan a través de una Edge Function. Spotify no permite crear una Jam real por API ni da fragmentos de preview a apps nuevas: "adivina la canción" se hace con *seek* a un segundo aleatorio durante 10 s en el móvil del conductor. Modo desarrollo de Spotify: máximo 5 usuarios autorizados, 10 resultados por búsqueda.
+- **Música**: la cola vive en Supabase. Solo el conductor se autentica en Spotify (PKCE, Premium) y su móvil reproduce. Los pasajeros buscan a través de una Edge Function. Spotify no permite crear una Jam real por API ni da fragmentos de preview a apps nuevas: "adivina la canción" se hace con *seek* a un segundo aleatorio durante 10 s en el móvil del conductor. Modo desarrollo de Spotify: máximo 5 usuarios autorizados, 10 resultados por búsqueda. Para probar sin compilar, el Modo conductor también funciona desde la web: no suena en el navegador, sino que controla la app de Spotify abierta con la cuenta del conductor (ordenador o móvil); los tokens van en `localStorage` y la Redirect URI web es `https://copi-navy.vercel.app/spotify-auth`.
 - **Gastos**: botón iniciar/finalizar viaje; distancia GPS × consumo (L/100 km) × precio (€/L), repartido **a partes iguales entre todos los ocupantes, conductor incluido** (el conductor también paga su parte), más gastos extra (peajes, parking) con foto del ticket. Pagos: enlace PayPal.me con importe, Bizum (teléfono + importe para copiar) y "marcar como pagado". Sin pasarela real (opcional: Stripe en modo pruebas).
 - **Seguridad vial**: el conductor solo ve el Modo conductor (pantalla única, oscura). Todo lo que administra la sala lo hace el **copiloto designado**.
 
@@ -28,7 +28,7 @@ Proyecto de la asignatura de Sistemas Móviles (Universidad de Córdoba), grupo 
 
 - `app.config.ts` (no `app.json`): lee `EXPO_PUBLIC_WEB_URL` para registrar el App Link `https://<dominio>/c/...`.
 - Variables públicas en `src/config/env.ts`; nunca leer `process.env` en otros sitios.
-- Lo que solo existe en Android tiene una versión `.web.ts` (NFC, GPS, tokens de Spotify).
+- Lo que solo existe en Android tiene una versión `.web.ts` (NFC, GPS). Los tokens de Spotify se guardan en SecureStore (`tokens.ts`) o en `localStorage` (`tokens.web.ts`) con la misma lógica (`tokenStore.ts`).
 
 ## Estructura de carpetas
 

@@ -2,7 +2,7 @@ import { useKeepAwake } from 'expo-keep-awake';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LicensePlate } from '@/components/coche/LicensePlate';
@@ -87,7 +87,8 @@ function DriverMode() {
 
   const tripStatus = session?.status ?? 'abierta';
   const running = tripStatus === 'en_curso';
-  const playerEnabled = Platform.OS !== 'web' && isHost && spotify.connected && tripStatus !== 'finalizada';
+  // También en la web (para pruebas): ahí controla la app de Spotify abierta con la cuenta del conductor.
+  const playerEnabled = isHost && spotify.connected && tripStatus !== 'finalizada';
   // «Adivina la canción» (#21): mientras suena el fragmento, la cola espera.
   const quiz = useSongQuizHost(playerEnabled);
   const player = useHostPlayer(queue, playerEnabled && !quiz.playing);
