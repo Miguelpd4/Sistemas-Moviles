@@ -48,7 +48,7 @@ export default function ViajeScreen() {
           <Glow cy={0.15} />
           <MaterialCommunityIcons name="map-marker-path" size={48} color={colors.primary} />
           <AppText variant="heading" style={styles.center}>
-            Cuando el conductor pulse «Iniciar viaje», aquí verás el mapa, los kilómetros, el tiempo y lo que va costando la gasolina.
+            Abajo tienes la ruta y el tiempo hasta el destino desde donde estás. Cuando el conductor pulse «Iniciar viaje», aquí verás también los kilómetros y lo que va costando la gasolina.
           </AppText>
         </View>
         {session?.status === 'abierta' ? mapCard : null}

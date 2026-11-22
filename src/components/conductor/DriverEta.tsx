@@ -1,39 +1,45 @@
 import { StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui';
+import { useMyLocation } from '@/hooks/useMyLocation';
 import { useTripRoute } from '@/hooks/useTripRoute';
-import { formatKm } from '@/lib/format';
+import { formatDuration, formatKm } from '@/lib/format';
 import type { LatLon } from '@/lib/route';
 import type { Destination } from '@/services/supabase/sessions';
 import { driverColors, fonts, radius, spacing } from '@/theme';
 
 type Props = { destination: Destination | null; car: LatLon | null };
 
-/** Hora de llegada en el Modo conductor (#29): grande y sin nada que tocar. */
+/** Hora de llegada en el Modo conductor (#29): grande, desde la ubicación del móvil y sin nada que tocar. */
 export function DriverEta({ destination, car }: Props) {
-  const { route, arrival } = useTripRoute(car, destination);
+  const me = useMyLocation(destination !== null);
+  const here = me.position ? { lat: me.position.lat, lon: me.position.lon } : car;
+  const { remainingM, remainingS, arrival } = useTripRoute(here, destination);
   if (!destination) return null;
+  const ready = arrival !== null && remainingM !== null && remainingS !== null;
   return (
     <View
       style={styles.box}
       accessible
-      accessibilityLabel={arrival && route ? `Llegada a ${destination.name} a las ${arrival}, faltan ${formatKm(route.distanceM)}` : `Destino: ${destination.name}`}
+      accessibilityLabel={
+        ready ? `Llegada a ${destination.name} a las ${arrival}, quedan ${formatDuration(remainingS)} y ${formatKm(remainingM)}` : `Destino: ${destination.name}`
+      }
     >
       <AppText variant="bodyStrong" color={driverColors.textSecondary} numberOfLines={1}>
         {destination.name}
       </AppText>
-      {arrival && route ? (
+      {ready ? (
         <View style={styles.row}>
           <AppText style={styles.time} color={driverColors.accent}>
             {arrival}
           </AppText>
           <AppText variant="heading" color={driverColors.text}>
-            llegada · {formatKm(route.distanceM)}
+            llegada · {formatDuration(remainingS)} · {formatKm(remainingM)}
           </AppText>
         </View>
       ) : (
         <AppText variant="heading" color={driverColors.text}>
-          La hora de llegada sale al iniciar el viaje
+          {me.error ?? 'Buscando dónde estás…'}
         </AppText>
       )}
     </View>
