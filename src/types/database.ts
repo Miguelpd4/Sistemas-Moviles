@@ -527,6 +527,7 @@ export type Database = {
       vote_skip: { Args: { p_queue_id: string }; Returns: Json };
       skip_song: { Args: { p_queue_id: string }; Returns: undefined };
       mark_payment_paid: { Args: { p_payment_id: string }; Returns: undefined };
+      bingo_mark: { Args: { p_round_id: string; p_item: string }; Returns: Json };
       submit_plate: { Args: { p_round_id: string; p_plate: string }; Returns: number };
       plate_matches: { Args: { p_challenge: Json; p_plate: string }; Returns: boolean };
       set_destination: {

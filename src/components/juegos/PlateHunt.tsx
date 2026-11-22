@@ -80,13 +80,13 @@ export function PlateEntry({ disabled, found, onSubmit }: EntryProps) {
   );
 }
 
-/** Quién ha cazado ya su matrícula, por orden de llegada (sin decir cuál: se ve al final). */
-function PlateFindersBase({ people }: { people: readonly Person[] }) {
+/** Quién ha cazado ya su matrícula (o cantado línea en el bingo), por orden de llegada. */
+function PlateFindersBase({ people, emptyText }: { people: readonly Person[]; emptyText?: string }) {
   const { colors } = useTheme();
   if (people.length === 0) {
     return (
       <AppText variant="caption" color={colors.textTertiary} style={styles.center}>
-        Nadie la ha encontrado todavía. ¡Mirad bien los coches de alrededor!
+        {emptyText ?? 'Nadie la ha encontrado todavía. ¡Mirad bien los coches de alrededor!'}
       </AppText>
     );
   }
