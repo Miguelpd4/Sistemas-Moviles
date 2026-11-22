@@ -5,19 +5,19 @@ import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from 'react
 import { AppText, Button, Notice } from '@/components/ui';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { errorMessage } from '@/lib/errors';
-import { searchTracks } from '@/services/spotify/search';
+import { searchYouTube } from '@/services/youtube/search';
 import { radius, spacing, typography, useTheme } from '@/theme';
-import type { SpotifyTrack } from '@/types/spotify';
+import type { YouTubeTrack } from '@/types/youtube';
 
 import { TrackRow } from './TrackRow';
 
 type Props = {
   /** Si el usuario ya tiene 3 canciones esperando. */
   full: boolean;
-  onAdd: (track: SpotifyTrack) => Promise<void>;
+  onAdd: (track: YouTubeTrack) => Promise<void>;
 };
 
-/** Buscador de canciones (Spotify, a través de la Edge Function) con resultados para añadir. */
+/** Buscador de canciones (YouTube, a través de la Edge Function youtube-search) con resultados para añadir. */
 export function SearchBox({ full, onAdd }: Props) {
   const { colors, scheme } = useTheme();
   const [text, setText] = useState('');
@@ -25,7 +25,7 @@ export function SearchBox({ full, onAdd }: Props) {
   const [attempt, setAttempt] = useState(0);
   // El resultado va con la búsqueda que lo pidió: así se sabe si está buscando sin guardarlo aparte.
   const searchKey = `${attempt}:${query}`;
-  const [found, setFound] = useState<{ key: string; tracks: SpotifyTrack[]; error: string | null } | null>(null);
+  const [found, setFound] = useState<{ key: string; tracks: YouTubeTrack[]; error: string | null } | null>(null);
   /** Error al añadir una canción. */
   const [addError, setAddError] = useState<string | null>(null);
   const [adding, setAdding] = useState<string | null>(null);
@@ -35,7 +35,7 @@ export function SearchBox({ full, onAdd }: Props) {
   useEffect(() => {
     if (tooShort) return;
     let active = true;
-    searchTracks(query)
+    searchYouTube(query)
       .then((tracks) => {
         if (active) setFound({ key: searchKey, tracks, error: null });
       })
@@ -53,12 +53,12 @@ export function SearchBox({ full, onAdd }: Props) {
   const results = tooShort ? [] : (found?.tracks ?? []);
   const error = addError ?? (tooShort || searching ? null : (found?.error ?? null));
 
-  const add = async (track: SpotifyTrack) => {
-    setAdding(track.id);
+  const add = async (track: YouTubeTrack) => {
+    setAdding(track.videoId);
     setAddError(null);
     try {
       await onAdd(track);
-      setAdded((current) => new Set([...current, track.id]));
+      setAdded((current) => new Set([...current, track.videoId]));
     } catch (err) {
       setAddError(errorMessage(err));
     } finally {
@@ -114,11 +114,11 @@ export function SearchBox({ full, onAdd }: Props) {
         <View>
           {results.map((track) => (
             <TrackRow
-              key={track.id}
+              key={track.videoId}
               track={track}
               disabled={full}
-              adding={adding === track.id}
-              added={added.has(track.id)}
+              adding={adding === track.videoId}
+              added={added.has(track.videoId)}
               onAdd={(item) => void add(item)}
             />
           ))}

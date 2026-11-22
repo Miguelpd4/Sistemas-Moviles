@@ -1,139 +1,126 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { AppError, errorMessage } from '@/lib/errors';
-import { nextTrack, playerAction, type SpotifySnapshot } from '@/lib/queue';
-import { markFinished, markPlaying, type QueueRow } from '@/services/supabase/queue';
-import { getCurrentlyPlaying, pause, playTrack } from '@/services/spotify/player';
+import { errorMessage } from '@/lib/errors';
+import { isPlayable, nextTrack, playerAction, resumeOffsetMs } from '@/lib/queue';
+import { markFinished, markPlaying, markSkipped, type QueueRow } from '@/services/supabase/queue';
 
 import { useSession } from './useSession';
+import type { YouTubeController } from './useYouTubeController';
 
-/** Cada cuánto se mira Spotify. */
-const TICK_MS = 3000;
+/** Cada cuánto se revisa el reproductor (no llama a ningún servicio: solo mira el estado). */
+const TICK_MS = 1000;
 /** Cada cuánto se avisa a la sala de lo que suena. */
 const BROADCAST_MS = 5000;
-/** Tras pedir una canción, Spotify tarda un poco en decir que ya suena. */
-const START_GRACE_MS = 4000;
+/** Tras poner una canción, la cola tarda un poco en decir que ya suena (llega por Realtime). */
+const START_GRACE_MS = 5000;
 
 type QueueState = { items: QueueRow[]; nowPlaying: QueueRow | null; lastChange: QueueRow | null };
 
 export type HostPlayerState = {
-  spotify: SpotifySnapshot | null;
   error: string | null;
-  /** Hace falta abrir Spotify en el móvil. */
-  needsDevice: boolean;
 };
 
 /**
- * Reproductor del conductor (S2-06). Solo se monta en el Modo conductor, en el móvil del
- * conductor y con Spotify conectado: hace sonar la cola en orden, marca cada canción como
- * sonando o terminada y avisa a la sala de lo que suena.
+ * Reproductor de la cola en el Modo conductor (S2-06, con YouTube desde #57). Solo se monta en el
+ * móvil del conductor: pone las canciones en orden en el reproductor de YouTube de la pantalla,
+ * marca cada una como sonando o terminada y avisa a la sala de lo que suena.
  */
-export function useHostPlayer(queue: QueueState, enabled: boolean): HostPlayerState {
+export function useHostPlayer(queue: QueueState, player: YouTubeController, enabled: boolean): HostPlayerState {
   const { send } = useSession();
-  const [spotify, setSpotify] = useState<SpotifySnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [needsDevice, setNeedsDevice] = useState(false);
 
   const queueRef = useRef(queue);
   const busyRef = useRef(false);
+  /** La fila de la cola que está en el reproductor. */
+  const loadedRef = useRef<string | null>(null);
+  /** La última que se mandó poner, para no ponerla dos veces mientras llega el cambio por Realtime. */
   const startedRef = useRef<{ id: string; at: number } | null>(null);
-  const spotifyRef = useRef<SpotifySnapshot | null>(null);
 
   useEffect(() => {
     queueRef.current = queue;
   }, [queue]);
 
-  const handleError = useCallback((err: unknown) => {
-    setNeedsDevice(err instanceof AppError && err.code === 'NO_ACTIVE_DEVICE');
-    setError(errorMessage(err, 'No se ha podido controlar Spotify.'));
-  }, []);
-
   const playNext = useCallback(async () => {
     const next = nextTrack(queueRef.current.items);
     if (next === null) {
-      // Se acabó la cola: se para la música hasta que alguien añada otra.
-      if (spotifyRef.current?.isPlaying) await pause().catch(() => undefined);
+      // Se acabó la cola: la música para hasta que alguien añada otra.
+      if (player.snapshot().state === 'playing') player.pause();
+      loadedRef.current = null;
       startedRef.current = null;
       return;
     }
-    await playTrack(next.spotify_track_id);
+    player.load(next.track_id, 0);
+    loadedRef.current = next.id;
     startedRef.current = { id: next.id, at: Date.now() };
     await markPlaying(next.id);
-  }, []);
+  }, [player]);
 
-  // Con promesas encadenadas (no async/await en el useCallback): el estado solo cambia cuando
-  // responde Spotify, nunca en el mismo instante en que lo llama un efecto.
   const tick = useCallback(() => {
-    if (busyRef.current) return Promise.resolve();
+    if (busyRef.current) return;
     busyRef.current = true;
-    return getCurrentlyPlaying()
-      .then(async (snapshot) => {
-        spotifyRef.current = snapshot;
-        setSpotify(snapshot);
+    const run = async () => {
+      const { items, nowPlaying, lastChange } = queueRef.current;
 
-        const { items, nowPlaying, lastChange } = queueRef.current;
-        // La que sonaba puede haberse saltado por votación: ya no está en la lista.
-        const skipped = lastChange && lastChange.status === 'saltada' && lastChange.id === startedRef.current?.id ? lastChange : null;
-        const current = nowPlaying ?? skipped;
-        const hasQueue = items.some((item) => item.status === 'en_cola');
-        let action = playerAction({ current, spotify: snapshot, hasQueue });
+      // Las canciones de Spotify que quedaron de las pruebas no se pueden poner: fuera de la cola.
+      const stale = items.filter((item) => item.status === 'en_cola' && !isPlayable(item));
+      for (const item of stale) await markSkipped(item.id);
 
-        // Recién pedida, Spotify aún puede decir la canción anterior.
-        const started = startedRef.current;
-        if (action === 'finish_current' && started && started.id === current?.id && Date.now() - started.at < START_GRACE_MS) {
-          action = 'wait';
-        }
+      // Recién puesta una canción, se espera a que la cola diga que ya suena.
+      const started = startedRef.current;
+      if (started && Date.now() - started.at < START_GRACE_MS && nowPlaying?.id !== started.id) return;
 
-        if (action === 'finish_current' && current) {
+      // La que sonaba puede haberse saltado por votación: ya no está en la lista.
+      const skipped = lastChange && lastChange.status === 'saltada' && lastChange.id === loadedRef.current ? lastChange : null;
+      const current = nowPlaying ?? skipped;
+      const hasQueue = items.some((item) => item.status === 'en_cola' && isPlayable(item));
+      const action = playerAction({ current, player: player.snapshot(), hasQueue });
+
+      if (action === 'finish_current' && current) {
+        await markFinished(current.id);
+        await playNext();
+      } else if (action === 'play_next') {
+        await playNext();
+      } else if (action === 'load_current' && current) {
+        // El Modo conductor se ha vuelto a abrir con una canción sonando: se sigue por donde iría.
+        const offset = resumeOffsetMs(current.started_at, current.duration_ms, Date.now());
+        if (offset === null) {
           await markFinished(current.id);
           await playNext();
-        } else if (action === 'play_next') {
-          await playNext();
+        } else {
+          player.load(current.track_id, offset / 1000);
+          loadedRef.current = current.id;
         }
-        setError(null);
-        setNeedsDevice(false);
-      })
-      .catch(handleError)
+      }
+    };
+    run()
+      .then(() => setError(null))
+      .catch((err: unknown) => setError(errorMessage(err, 'No se ha podido avanzar la cola.')))
       .finally(() => {
         busyRef.current = false;
       });
-  }, [playNext, handleError]);
+  }, [player, playNext]);
 
   // Bucle del reproductor.
   useEffect(() => {
     if (!enabled) return;
-    void tick();
-    const timer = setInterval(() => void tick(), TICK_MS);
+    const timer = setInterval(tick, TICK_MS);
     return () => clearInterval(timer);
   }, [enabled, tick]);
 
-  // Si se salta la canción por votación, se actúa enseguida.
-  const skippedId = queue.lastChange?.status === 'saltada' ? queue.lastChange.id : null;
-  useEffect(() => {
-    if (enabled && skippedId !== null) void tick();
-  }, [enabled, skippedId, tick]);
-
-  // Con la cola parada, en cuanto alguien añade una canción empieza a sonar.
-  const queued = queue.items.filter((item) => item.status === 'en_cola').length;
-  const idle = queue.nowPlaying === null;
-  useEffect(() => {
-    if (enabled && idle && queued > 0) void tick();
-  }, [enabled, idle, queued, tick]);
-
-  // Aviso a la sala de lo que suena.
+  // Aviso a la sala de lo que suena (la barra de progreso de Música).
   useEffect(() => {
     if (!enabled) return;
     const timer = setInterval(() => {
-      const snapshot = spotifyRef.current;
+      const snapshot = player.snapshot();
       send('ahora_suena', {
         queueId: queueRef.current.nowPlaying?.id ?? null,
-        progressMs: snapshot?.progressMs ?? 0,
-        durationMs: snapshot?.durationMs ?? 0,
-        isPlaying: snapshot?.isPlaying ?? false,
+        progressMs: snapshot.progressMs,
+        durationMs: snapshot.durationMs,
+        isPlaying: snapshot.state === 'playing',
       });
     }, BROADCAST_MS);
     return () => clearInterval(timer);
-  }, [enabled, send]);
+  }, [enabled, send, player]);
 
-  return { spotify, error, needsDevice };
+  return { error };
 }

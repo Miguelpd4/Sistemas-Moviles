@@ -1,6 +1,6 @@
 # Sprint 2 · Pruebas en móviles reales
 
-Guion para cerrar lo que falta del Sprint 2: el reproductor con Spotify Premium (S2-06), el GPS en coche (S2-08) y los juegos musicales (#20, #21, #22). Cada prueba tiene pasos y lo que debe pasar. Marcad la casilla si sale bien. Si sale mal, abrid una issue con la etiqueta del módulo (ver «Si algo falla», al final).
+Guion para cerrar lo que falta del Sprint 2: la música con YouTube (S2-06, #57), el GPS en coche (S2-08) y los juegos musicales (#20, #21, #22). Cada prueba tiene pasos y lo que debe pasar. Marcad la casilla si sale bien. Si sale mal, abrid una issue con la etiqueta del módulo (ver «Si algo falla», al final).
 
 ## Antes de salir
 
@@ -8,7 +8,7 @@ Guion para cerrar lo que falta del Sprint 2: el reproductor con Spotify Premium 
 
 | Papel | Móvil | Qué necesita |
 | --- | --- | --- |
-| Conductor | Android con la app en versión release | Cuenta de Spotify **Premium** dada de alta como usuario en la app de Spotify for Developers (máximo 5) y la app de Spotify instalada |
+| Conductor | Android con la app en versión release | Nada más: la música suena dentro de COPI, sin cuentas |
 | Pasajero 1 (copiloto) | Android | La app |
 | Pasajero 2 | Android | La app |
 | Pasajero 3 (opcional) | iPhone | La web desde la pegatina o el QR |
@@ -17,9 +17,8 @@ Hacen falta como mínimo el conductor y 2 pasajeros. Con 3 pasajeros se prueba t
 
 ### Configuración (una vez)
 
-- [ ] En Supabase → Edge Functions → Secrets están `SPOTIFY_CLIENT_ID` y `SPOTIFY_CLIENT_SECRET`. Sin ellos, buscar canciones da «No se ha podido buscar en Spotify».
-- [ ] En el `.env` del ordenador que compila están `EXPO_PUBLIC_SPOTIFY_CLIENT_ID`, `EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_WEB_URL`. Las variables `EXPO_PUBLIC_*` se meten en el APK al compilar: si se cambian, hay que volver a compilar.
-- [ ] La URL de redirección de la app (la que sale al conectar Spotify) está añadida en la app de Spotify for Developers.
+- [ ] En Supabase → Edge Functions → Secrets está `YOUTUBE_API_KEY` (ver `docs/youtube-google-cloud.md`). Sin ella, buscar canciones da «Falta YOUTUBE_API_KEY…».
+- [ ] El `.env` del ordenador que compila es una copia de `.env.example`. Las variables `EXPO_PUBLIC_*` se meten en el APK al compilar: si se cambian, hay que volver a compilar.
 - [ ] La web de Vercel está desplegada con la última versión de `main` (para el iPhone).
 
 ### Compilar la versión que funciona sin ordenador
@@ -44,7 +43,6 @@ Haced lo mismo con los móviles Android de los pasajeros, o pasadles el APK que 
 
 - [ ] Ubicación: «Permitir todo el tiempo» para COPI.
 - [ ] Batería: COPI «Sin restricciones» (si no, Android corta el GPS en segundo plano).
-- [ ] Spotify abierto y con sesión de la cuenta Premium.
 - [ ] Datos móviles activados en todos los móviles.
 
 ## A · Entrada y sala (repaso rápido)
@@ -52,19 +50,19 @@ Haced lo mismo con los móviles Android de los pasajeros, o pasadles el APK que 
 - [ ] **A1.** El conductor crea el viaje. Cada pasajero toca la pegatina (o escanea el QR), elige nombre, personaje y asiento, y aparece en la Sala de todos en menos de 3 s.
 - [ ] **A2.** El conductor nombra copiloto al pasajero 1. El pasajero 1 ve las opciones de administrar la sala.
 
-## B · Reproductor con Spotify Premium (S2-06)
+## B · Música con YouTube (S2-06, #57)
 
-- [ ] **B1. Conectar.** En el Modo conductor, «Conectar Spotify» abre el inicio de sesión de Spotify y vuelve a la app con la cuenta conectada (sale su nombre).
-- [ ] **B2. Buscar.** Un pasajero busca «sola» en Música: salen hasta 10 resultados con carátula.
-- [ ] **B3. Empieza solo.** Los pasajeros 1 y 2 añaden una canción cada uno. La primera empieza a sonar en el móvil del conductor sin tocar nada, en menos de 5 s.
+- [ ] **B1. Reproductor.** El conductor abre el Modo conductor: sale «Música de la sala» con el reproductor de YouTube (negro hasta que suene algo).
+- [ ] **B2. Buscar.** Un pasajero busca «columbia quevedo» en Música: salen hasta 10 canciones con portada y duración.
+- [ ] **B3. Empieza sola.** Los pasajeros 1 y 2 añaden una canción cada uno. La primera empieza a sonar en el Modo conductor sin tocar nada, en menos de 5 s.
 - [ ] **B4. «Ahora suena».** En Música de todos los pasajeros aparece la canción con «La puso X» y la barra de progreso avanza. Se actualiza cada 5 s como mucho.
-- [ ] **B5. Siguiente canción.** Al acabar la canción (o adelantándola casi al final desde Spotify), empieza la siguiente de la cola y desaparece de «A continuación».
+- [ ] **B5. Siguiente canción.** Al acabar la canción (o adelantándola casi al final en el reproductor), empieza la siguiente y desaparece de «A continuación».
 - [ ] **B6. Saltar por votos.** Con 3 pasajeros, dos pulsan «Saltar»: la canción cambia en menos de 5 s. Con un solo voto, no cambia.
 - [ ] **B7. Límite.** Un pasajero intenta añadir una cuarta canción con 3 suyas esperando: sale el aviso de que ya tiene 3.
 - [ ] **B8. Cola vacía.** Cuando suena la última, al acabar la música se para. Al añadir otra, vuelve a sonar sola.
-- [ ] **B9. Spotify cerrado.** Se cierra Spotify en el móvil del conductor: el Modo conductor pide abrir Spotify. Al abrirlo, la cola sigue.
-- [ ] **B10. Una hora después.** Tras más de una hora conectados, la música sigue (el token se renueva solo).
-- [ ] **B11. Desde la web (sin compilar).** El conductor abre el Modo conductor en el navegador del ordenador (`https://copi-navy.vercel.app`), con la app de Spotify abierta con la cuenta Premium en el ordenador o en el móvil. «Conectar Spotify» abre una ventana, vuelve con la cuenta conectada y la cola suena en esa app de Spotify. Requiere la Redirect URI `https://copi-navy.vercel.app/spotify-auth` en Spotify for Developers.
+- [ ] **B9. Volver a abrir.** Con una canción sonando, el conductor sale del Modo conductor y vuelve a entrar: la canción sigue por donde iría.
+- [ ] **B10. Vídeo que no se deja.** Si una canción no deja reproducirse fuera de YouTube, el Modo conductor lo avisa y pasa a la siguiente.
+- [ ] **B11. Desde la web.** El conductor abre el Modo conductor en el navegador (`https://copi-navy.vercel.app`) y la cola suena ahí. Si el navegador no deja empezar sola la música, sale «pulsa ▶ en el vídeo» y al pulsarlo sigue sola.
 
 ## C · GPS en coche (S2-08)
 
@@ -100,11 +98,11 @@ Para D1–D3 tiene que estar sonando la cola en el móvil del conductor.
 
 Hacen falta al menos 3 canciones distintas en el viaje (sonadas o en cola) además de la que suena.
 
-- [ ] **D5. Fragmento.** Al lanzarlo, en menos de 3 s el móvil del conductor deja la canción de la cola y pone otra desde un punto que no es el principio. El Modo conductor dice «suena un fragmento de 10 s».
+- [ ] **D5. Fragmento.** Al lanzarlo, en menos de 3 s el reproductor del Modo conductor deja la canción de la cola y pone otra desde un punto que no es el principio. El Modo conductor dice «suena un fragmento de 10 s».
 - [ ] **D6. Vuelta a la cola.** A los 10 s vuelve la canción que sonaba, **por donde iba**.
 - [ ] **D7. La cola no se rompe.** Tras el fragmento, la canción de la cola sigue en «Ahora suena» y no se ha saltado a la siguiente. Al acabar, pasa a la siguiente con normalidad.
 - [ ] **D8. Resultado.** Los pasajeros eligen entre 3–4 canciones. Al acabar, todos ven «Era… título, artista» y quien acierta, +100.
-- [ ] **D9. Sin música.** Con la cola parada (no suena nada), lanzarlo avisa de que no suena ninguna canción.
+- [ ] **D9. Sin música.** Con la cola parada (no suena nada), lanzarlo avisa de que no suena ninguna canción. Las canciones de Spotify que quedaron de las pruebas no cuentan para el juego.
 
 ### Turnos de DJ (#20)
 

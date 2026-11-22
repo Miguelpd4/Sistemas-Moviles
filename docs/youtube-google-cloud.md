@@ -38,11 +38,13 @@ La función `youtube-search` ya está desplegada. Si hay que volver a desplegarl
 npx supabase functions deploy youtube-search
 ```
 
-En COPI → **Perfil** → **Música con YouTube (prueba)** → **Prueba de YouTube**, en el móvil y en https://copi-navy.vercel.app:
+En la sala (#57):
 
-1. Buscad «Columbia Quevedo»: salen canciones, primero las de «Audio oficial».
-2. **Poner**: suena **dentro de COPI**, con el vídeo visible.
-3. **Fragmento de 10 s al azar**: suena 10 segundos desde un punto al azar y se pausa, como en «Adivina la canción».
+1. El conductor crea un viaje y abre el **Modo conductor**: sale «Música de la sala» con el reproductor.
+2. Un pasajero busca en **Música** y añade una canción: empieza a sonar sola en el Modo conductor.
+3. En la web, si el navegador no deja que la música empiece sola, pulsad ▶ en el vídeo una vez.
+
+La prueba técnica sigue en **Perfil** → **Música con YouTube (prueba)** → **Prueba de YouTube**: buscar, **Poner**, pausa y **Fragmento de 10 s al azar**.
 
 El reproductor necesita `react-native-webview`, un módulo nativo nuevo. Hay que **recompilar el APK una vez**:
 

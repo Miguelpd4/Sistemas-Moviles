@@ -223,7 +223,8 @@ export type Database = {
         Row: {
           id: string;
           session_id: string;
-          spotify_track_id: string;
+          source: string;
+          track_id: string;
           title: string;
           artist: string;
           album_art_url: string | null;
@@ -238,7 +239,8 @@ export type Database = {
         Insert: {
           id?: string;
           session_id: string;
-          spotify_track_id: string;
+          source?: string;
+          track_id: string;
           title: string;
           artist: string;
           album_art_url?: string | null;
@@ -253,7 +255,8 @@ export type Database = {
         Update: {
           id?: string;
           session_id?: string;
-          spotify_track_id?: string;
+          source?: string;
+          track_id?: string;
           title?: string;
           artist?: string;
           album_art_url?: string | null;

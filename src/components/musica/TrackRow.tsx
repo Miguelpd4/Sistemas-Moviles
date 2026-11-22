@@ -4,32 +4,31 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui';
 import { radius, spacing, useTheme } from '@/theme';
-import type { SpotifyTrack } from '@/types/spotify';
+import { formatClock } from '@/lib/format';
+import type { YouTubeTrack } from '@/types/youtube';
 
 import { AlbumArt } from './AlbumArt';
 
 type Props = {
-  track: SpotifyTrack;
+  track: YouTubeTrack;
   disabled: boolean;
   adding: boolean;
   added: boolean;
-  onAdd: (track: SpotifyTrack) => void;
+  onAdd: (track: YouTubeTrack) => void;
 };
 
 /** Un resultado de la búsqueda con su botón para añadirlo a la cola. */
 function TrackRowBase({ track, disabled, adding, added, onAdd }: Props) {
   const { colors } = useTheme();
-  const minutes = Math.floor(track.durationMs / 60_000);
-  const seconds = String(Math.round((track.durationMs % 60_000) / 1000)).padStart(2, '0');
   return (
     <View style={styles.row}>
-      <AlbumArt url={track.albumArtUrl} size={52} />
+      <AlbumArt url={track.thumbnailUrl} size={52} />
       <View style={styles.text}>
         <AppText variant="bodyStrong" numberOfLines={1}>
           {track.title}
         </AppText>
         <AppText variant="caption" color={colors.textSecondary} numberOfLines={1}>
-          {track.artist} · {minutes}:{seconds}
+          {track.artist} · {formatClock(track.durationMs)}
         </AppText>
       </View>
       <Pressable

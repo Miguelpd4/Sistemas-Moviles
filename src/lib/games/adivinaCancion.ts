@@ -4,7 +4,7 @@
 export const SONG_QUIZ_SECONDS = 25;
 /** Duración del fragmento si el servidor no dice otra cosa. */
 export const DEFAULT_CLIP_MS = 10_000;
-/** Tras volver a la canción de la cola, Spotify tarda un poco en decir que ya suena. */
+/** Tras volver a la canción de la cola, YouTube tarda un poco en cargarla y volver a sonar. */
 export const RESUME_GRACE_MS = 4000;
 
 export type SongOption = { id: string; label: string; detail?: string };

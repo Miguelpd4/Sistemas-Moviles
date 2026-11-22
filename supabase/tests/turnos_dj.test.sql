@@ -1,7 +1,7 @@
 -- #20 · Turnos de DJ: turnos por asiento, votar solo cuando han sonado todas y nunca a uno mismo.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(15);
+select plan(16);
 
 create function pg_temp.como(p_uid uuid, p_anon boolean default true) returns void
 language plpgsql as $$
@@ -46,14 +46,14 @@ select pg_temp.como('22222222-2222-2222-2222-222222222222');
 select lives_ok($$ select public.add_dj_song((select id from ronda), 't1', 'Canción 1', 'Artista', null, 200000) $$,
   'Bea elige en su turno');
 select pg_temp.como('33333333-3333-3333-3333-333333333333');
-select throws_ok($$ insert into public.music_queue (session_id, spotify_track_id, title, artist, duration_ms, added_by, dj_round_id)
+select throws_ok($$ insert into public.music_queue (session_id, track_id, title, artist, duration_ms, added_by, dj_round_id)
   select v.id, 't9', 'Colada', 'Artista', 200000, '33333333-3333-3333-3333-333333333333', r.id from viaje v, ronda r $$,
   '42501', null, 'una canción de DJ no entra con un insert directo');
 
 -- 6 · Aún no se vota
 select pg_temp.como('22222222-2222-2222-2222-222222222222');
 select throws_ok($$ select public.submit_answer((select id from ronda),
-  jsonb_build_object('option', (select id from public.music_queue where spotify_track_id = 't1'))) $$,
+  jsonb_build_object('option', (select id from public.music_queue where track_id = 't1'))) $$,
   'P0001', 'VOTING_NOT_OPEN', 'no se vota mientras se eligen canciones');
 
 -- 7-10 · Saltar turno: solo admin o quien empezó; después le toca a Dani y Carlos ya no puede
@@ -65,6 +65,7 @@ select lives_ok($$ select public.skip_dj_turn((select id from ronda)) $$, 'Bea, 
 select pg_temp.como('44444444-4444-4444-4444-444444444444');
 select lives_ok($$ select public.add_dj_song((select id from ronda), 't4', 'Canción 4', 'Artista', null, 200000) $$,
   'Dani elige en su turno');
+select is((select source from public.music_queue where track_id = 't4'), 'youtube', 'la canción de DJ es de YouTube (#57)');
 select pg_temp.como('33333333-3333-3333-3333-333333333333');
 select throws_ok($$ select public.add_dj_song((select id from ronda), 't3', 'Canción 3', 'Artista', null, 200000) $$,
   'P0001', 'NOT_YOUR_TURN', 'tras saltarle, Carlos ya no elige');
@@ -81,15 +82,15 @@ update public.music_queue set status = 'reproducida', ended_at = now() where dj_
 -- 12 · Nadie se vota a sí mismo
 select pg_temp.como('22222222-2222-2222-2222-222222222222');
 select throws_ok($$ select public.submit_answer((select id from ronda),
-  jsonb_build_object('option', (select id from public.music_queue where spotify_track_id = 't1'))) $$,
+  jsonb_build_object('option', (select id from public.music_queue where track_id = 't1'))) $$,
   'P0001', 'OWN_SONG', 'Bea no puede votar su canción');
 
 -- 13-15 · Votan los tres pasajeros; Carlos revela y gana Dani
-select public.submit_answer((select id from ronda), jsonb_build_object('option', (select id from public.music_queue where spotify_track_id = 't4')));
+select public.submit_answer((select id from ronda), jsonb_build_object('option', (select id from public.music_queue where track_id = 't4')));
 select pg_temp.como('44444444-4444-4444-4444-444444444444');
-select public.submit_answer((select id from ronda), jsonb_build_object('option', (select id from public.music_queue where spotify_track_id = 't1')));
+select public.submit_answer((select id from ronda), jsonb_build_object('option', (select id from public.music_queue where track_id = 't1')));
 select pg_temp.como('33333333-3333-3333-3333-333333333333');
-select public.submit_answer((select id from ronda), jsonb_build_object('option', (select id from public.music_queue where spotify_track_id = 't4')));
+select public.submit_answer((select id from ronda), jsonb_build_object('option', (select id from public.music_queue where track_id = 't4')));
 select lives_ok($$ select public.reveal_round((select id from ronda)) $$, 'con los tres pasajeros votados, cualquiera revela');
 select is((select points from public.game_answers where round_id = (select id from ronda)
   and user_id = '44444444-4444-4444-4444-444444444444'), 50, 'Dani, DJ de la más votada: 50 puntos');

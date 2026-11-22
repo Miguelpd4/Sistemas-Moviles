@@ -15,7 +15,7 @@ import { readGuessWhoPayload } from '@/lib/games/quienLaPuso';
 import { vibrate } from '@/services/device/feedback';
 import { addDjSong, addToQueue, removeFromQueue } from '@/services/supabase/queue';
 import { spacing, useTheme } from '@/theme';
-import type { SpotifyTrack } from '@/types/spotify';
+import type { YouTubeTrack } from '@/types/youtube';
 
 const MAX_PER_PERSON = 3;
 
@@ -35,7 +35,7 @@ export default function MusicaScreen() {
   // En mi turno de DJ, la canción que añado es la de la ronda (#20).
   const djRoundId = myDjTurn ? (dj.round?.id ?? null) : null;
   const add = useCallback(
-    async (track: SpotifyTrack) => {
+    async (track: YouTubeTrack) => {
       if (myId === null) return;
       if (djRoundId !== null) await addDjSong(djRoundId, track);
       else await addToQueue(sessionId, myId, track);

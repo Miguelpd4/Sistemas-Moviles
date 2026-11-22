@@ -65,12 +65,11 @@ function ThemedStack(): ReactNode {
         <Stack.Screen name="conductor/index" options={{ gestureEnabled: false, animation: 'fade' }} />
         <Stack.Screen name="resumen/[sessionId]" />
         <Stack.Screen name="c/[carCode]" />
-        <Stack.Screen name="spotify-auth" options={{ animation: 'none' }} />
         <Stack.Screen
-          name="dev/spotify"
+          name="dev/youtube"
           options={{
             headerShown: true,
-            title: 'Prueba de Spotify',
+            title: 'Prueba de YouTube',
             headerStyle: { backgroundColor: colors.background },
             headerTintColor: colors.text,
           }}
