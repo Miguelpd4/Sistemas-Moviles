@@ -73,6 +73,12 @@ export async function voteSkip(id: string): Promise<SkipResult> {
   return { votes: Number(data.votes ?? 0), needed: Number(data.needed ?? 1), skipped: data.skipped === true };
 }
 
+/** Conductor o copiloto (#60): pasa a la siguiente canción sin votar (el servidor lo comprueba). */
+export async function skipSong(id: string): Promise<void> {
+  const { error } = await supabase.rpc('skip_song', { p_queue_id: id });
+  if (error) throw toAppError(error, 'No se ha podido pasar a la siguiente canción.');
+}
+
 export async function getVotes(queueId: string): Promise<string[]> {
   const { data, error } = await supabase.from('queue_votes').select('user_id').eq('queue_id', queueId);
   if (error) throw toAppError(error, 'No se han podido cargar los votos.');

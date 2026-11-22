@@ -49,6 +49,7 @@ const FORWARDED: readonly (keyof RoomEvents)[] = [
   'pedir_parada',
   'ahora_suena',
   'ronda',
+  'control_musica',
 ];
 
 const bySeat = (a: SessionMember, b: SessionMember) => (a.seat ?? 99) - (b.seat ?? 99);

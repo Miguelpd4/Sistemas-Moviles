@@ -62,6 +62,7 @@ Haced lo mismo con los móviles Android de los pasajeros, o pasadles el APK que 
 - [ ] **B8. Cola vacía.** Cuando suena la última, al acabar la música se para. Al añadir otra, vuelve a sonar sola.
 - [ ] **B9. Volver a abrir.** Con una canción sonando, el conductor sale del Modo conductor y vuelve a entrar: la canción sigue por donde iría.
 - [ ] **B10. Vídeo que no se deja.** Si una canción no deja reproducirse fuera de YouTube, el Modo conductor lo avisa y pasa a la siguiente.
+- [ ] **B12. Controles del copiloto (#60).** El copiloto (o el conductor) ve en «Ahora suena» ⏮, ⏸/▶ y ⏭: ⏮ vuelve al principio, ⏸ pausa y ▶ sigue en el Modo conductor, y ⏭ pasa a la siguiente. Un pasajero normal no ve esos botones (sigue con «Saltar» por votos).
 - [ ] **B11. Desde la web.** El conductor abre el Modo conductor en el navegador (`https://copi-navy.vercel.app`) y la cola suena ahí. Si el navegador no deja empezar sola la música, sale «pulsa ▶ en el vídeo» y al pulsarlo sigue sola.
 
 ## C · GPS en coche (S2-08)

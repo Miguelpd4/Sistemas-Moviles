@@ -55,6 +55,9 @@ export type SessionMember = {
   left_at: string | null;
 };
 
+/** Órdenes al reproductor del Modo conductor desde Música (#60). Pasar a la siguiente va por la RPC skip_song. */
+export type MusicControl = 'pause' | 'play' | 'restart';
+
 /** Avisos instantáneos de la sala (Broadcast, no se guardan). */
 export type BroadcastEvents = {
   /** Un pasajero pide parar. */
@@ -63,6 +66,8 @@ export type BroadcastEvents = {
   ahora_suena: { queueId: string | null; progressMs: number; durationMs: number; isPlaying: boolean };
   /** Alguien ha respondido a una ronda (para mostrar «3 de 4 han respondido»). */
   ronda: { roundId: string; userId: string };
+  /** El conductor o el copiloto controlan la música desde Música (#60). */
+  control_musica: { action: MusicControl; userId: string };
 };
 
 export type BroadcastEvent = keyof BroadcastEvents;

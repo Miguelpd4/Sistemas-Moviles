@@ -1,4 +1,4 @@
-import { IDLE_PLAYER, isPlayable, nextTrack, playerAction, resumeOffsetMs, votesNeeded, type PlayerSnapshot, type QueueItem } from '../queue';
+import { canControlMusic, IDLE_PLAYER, isPlayable, nextTrack, playerAction, resumeOffsetMs, votesNeeded, type PlayerSnapshot, type QueueItem } from '../queue';
 
 const item = (id: string, status: string, created_at: string, track = `t-${id}`, source = 'youtube'): QueueItem => ({
   id,
@@ -84,5 +84,24 @@ describe('votesNeeded', () => {
     expect(votesNeeded(3)).toBe(2);
     expect(votesNeeded(4)).toBe(3);
     expect(votesNeeded(1)).toBe(1);
+  });
+});
+
+describe('canControlMusic', () => {
+  const members = [
+    { user_id: 'conductor', role: 'conductor', status: 'dentro' },
+    { user_id: 'copi', role: 'copiloto', status: 'dentro' },
+    { user_id: 'bea', role: 'pasajero', status: 'dentro' },
+    { user_id: 'fuera', role: 'copiloto', status: 'fuera' },
+  ];
+  it('el conductor y el copiloto sí', () => {
+    expect(canControlMusic(members, 'conductor')).toBe(true);
+    expect(canControlMusic(members, 'copi')).toBe(true);
+  });
+  it('un pasajero, alguien que ya no está o alguien desconocido no', () => {
+    expect(canControlMusic(members, 'bea')).toBe(false);
+    expect(canControlMusic(members, 'fuera')).toBe(false);
+    expect(canControlMusic(members, 'nadie')).toBe(false);
+    expect(canControlMusic(members, null)).toBe(false);
   });
 });

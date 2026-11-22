@@ -78,6 +78,16 @@ export function resumeOffsetMs(startedAt: string | null, durationMs: number, now
   return elapsed < durationMs - 5000 ? elapsed : null;
 }
 
+/** Quién puede controlar la música desde Música (#60): el conductor y el copiloto que están dentro. */
+export function canControlMusic(
+  members: readonly { user_id: string; role: string; status: string }[],
+  userId: string | null,
+): boolean {
+  if (userId === null) return false;
+  const member = members.find((item) => item.user_id === userId);
+  return member !== undefined && member.status === 'dentro' && (member.role === 'conductor' || member.role === 'copiloto');
+}
+
 /** Votos necesarios para saltar: más de la mitad de los que están dentro. */
 export function votesNeeded(members: number): number {
   return Math.floor(Math.max(0, members) / 2) + 1;

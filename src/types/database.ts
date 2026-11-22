@@ -459,6 +459,7 @@ export type Database = {
       set_join_mode: { Args: { p_session_id: string; p_join_mode: string }; Returns: undefined };
       leave_session: { Args: { p_session_id: string }; Returns: undefined };
       vote_skip: { Args: { p_queue_id: string }; Returns: Json };
+      skip_song: { Args: { p_queue_id: string }; Returns: undefined };
       start_trip: {
         Args: { p_session_id: string; p_fuel_price: number; p_lat: number; p_lon: number };
         Returns: undefined;
