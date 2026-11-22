@@ -6,8 +6,8 @@ import { getPayees, getTripMoney, markPaymentPaid, type Expense, type Payee, typ
 type Loaded = { sessionId: string; expenses: Expense[]; payments: Payment[]; payees: Record<string, Payee> };
 
 /**
- * Gastos y pagos del viaje (#25) y cómo pagar a cada uno (#27). Solo se piden cuando `ready`
- * (el viaje ya ha terminado). `markPaid` marca un pago como hecho y vuelve a cargar.
+ * Gastos y pagos del viaje (#25) y cómo pagar a cada uno (#27). Solo se piden cuando `ready`.
+ * Durante el viaje hay gastos extra (#26) pero aún no pagos. `markPaid` y `reload` vuelven a cargar.
  */
 export function useTripMoney(sessionId: string | null, ready: boolean) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
@@ -47,5 +47,6 @@ export function useTripMoney(sessionId: string | null, ready: boolean) {
     payees: current?.payees ?? {},
     error,
     markPaid,
+    reload: () => setVersion((n) => n + 1),
   };
 }
