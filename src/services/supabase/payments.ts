@@ -1,7 +1,9 @@
 import { toAppError } from '@/lib/errors';
+import type { ExtraKind } from '@/lib/expenseForm';
 import type { ExpenseRow, PaymentRow } from '@/types/database';
 
 import { supabase } from './client';
+import { uploadTicket } from './storage';
 
 /** Gastos y pagos del viaje (#25). Los crea end_trip al finalizar; aquí solo se leen (RLS: miembros). */
 
@@ -32,4 +34,31 @@ export async function getPayees(userIds: readonly string[]): Promise<Record<stri
 export async function markPaymentPaid(paymentId: string): Promise<void> {
   const { error } = await supabase.rpc('mark_payment_paid', { p_payment_id: paymentId });
   if (error) throw toAppError(error, 'No se ha podido marcar el pago.');
+}
+
+/** #26 · Añade un peaje, parking u otro gasto pagado por mí, con la foto del ticket si la hay. */
+export async function addExpense(input: {
+  sessionId: string;
+  userId: string;
+  kind: ExtraKind;
+  description: string;
+  amountCents: number;
+  receiptUri: string | null;
+}): Promise<void> {
+  const receiptPath = input.receiptUri ? await uploadTicket(input.sessionId, input.userId, input.receiptUri) : null;
+  const { error } = await supabase.from('expenses').insert({
+    session_id: input.sessionId,
+    paid_by: input.userId,
+    kind: input.kind,
+    description: input.description.trim() || null,
+    amount_cents: input.amountCents,
+    receipt_path: receiptPath,
+  });
+  if (error) throw toAppError(error, 'No se ha podido guardar el gasto.');
+}
+
+/** #26 · Quita un gasto extra mío mientras el viaje no ha terminado. */
+export async function removeExpense(id: string): Promise<void> {
+  const { error } = await supabase.from('expenses').delete().eq('id', id);
+  if (error) throw toAppError(error, 'No se ha podido quitar el gasto.');
 }
