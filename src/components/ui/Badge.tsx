@@ -4,7 +4,7 @@ import { radius, spacing, useTheme, type Palette } from '@/theme';
 
 import { AppText } from './AppText';
 
-type Tone = 'neutral' | 'primary' | 'success' | 'live';
+type Tone = 'neutral' | 'primary' | 'success' | 'danger' | 'live';
 
 function toneColors(tone: Tone, c: Palette) {
   switch (tone) {
@@ -14,6 +14,8 @@ function toneColors(tone: Tone, c: Palette) {
       return { background: c.primarySoft, text: c.primaryText };
     case 'success':
       return { background: c.successSoft, text: c.success };
+    case 'danger':
+      return { background: c.dangerSoft, text: c.danger };
     case 'live':
       return { background: c.successSoft, text: c.success };
   }
