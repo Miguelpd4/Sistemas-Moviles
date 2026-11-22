@@ -35,6 +35,7 @@ export const RPC_MESSAGES = {
   NOT_YOUR_TURN: 'Todavía no te toca elegir. Espera tu turno de DJ.',
   VOTING_NOT_OPEN: 'Se vota cuando hayan sonado todas las canciones de la ronda.',
   INVALID_OPTION: 'Esa canción no es de esta ronda.',
+  INVALID_DESTINATION: 'Ese destino no es válido. Búscalo otra vez.',
   NOT_ENOUGH_SONGS: 'Hacen falta al menos 3 canciones distintas en el viaje (y alguna que no haya salido ya). Añadid más en Música.',
 } as const;
 
