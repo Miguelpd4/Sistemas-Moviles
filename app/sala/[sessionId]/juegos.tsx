@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
+import { BingoCard, BingoRanking, type BingoRow } from '@/components/juegos/BingoCard';
 import { Countdown } from '@/components/juegos/Countdown';
 import { GameLobby } from '@/components/juegos/GameLobby';
 import { GuessWhoSong } from '@/components/juegos/GuessWhoSong';
@@ -17,6 +18,7 @@ import { useSession } from '@/hooks/useSession';
 import { useTripMetrics } from '@/hooks/useTripMetrics';
 import { AppError, errorMessage } from '@/lib/errors';
 import { SONG_QUIZ_SECONDS, readSongQuizPayload } from '@/lib/games/adivinaCancion';
+import { BINGO_SECONDS, makeCards, readBingoAnswer, readBingoCards, readBingoResult } from '@/lib/games/bingo';
 import {
   PLATE_SECONDS,
   challengeExample,
@@ -43,7 +45,17 @@ import { formatKm } from '@/lib/format';
 import { fetchNearbyPlaces } from '@/services/games/wikipedia';
 import { getMyPosition } from '@/services/location/watch';
 import { vibrate } from '@/services/device/feedback';
-import { closeRound, createRound, revealRound, startGuessWho, startSongQuiz, submitAnswer, submitPlate, type GameId } from '@/services/supabase/games';
+import {
+  bingoMark,
+  closeRound,
+  createRound,
+  revealRound,
+  startGuessWho,
+  startSongQuiz,
+  submitAnswer,
+  submitPlate,
+  type GameId,
+} from '@/services/supabase/games';
 import { radius, spacing, useStyles, useTheme, type Palette } from '@/theme';
 import type { Json } from '@/types/database';
 
@@ -55,7 +67,8 @@ function readPayload(payload: Json | undefined): ProbablePayload {
 
 /**
  * Pestaña Juegos: el motor de rondas con «¿Quién es más probable que…?» (S2-09), «Adivina la
- * canción» (#21), «¿Quién la ha puesto?» (#22), «Trivial del camino» y «Cazamatrículas» (#48).
+ * canción» (#21), «¿Quién la ha puesto?» (#22), «Bingo de carretera», «Trivial del camino» y
+ * «Cazamatrículas» (#48).
  * Todos responden a la vez, nadie ve las respuestas hasta el final y el resultado aparece en todas
  * las pantallas. El conductor no juega.
  */
@@ -92,11 +105,19 @@ export default function JuegosScreen() {
   const isSongQuiz = round?.game === 'adivina_cancion';
   const isTrivial = round?.game === 'trivial';
   const isPlates = round?.game === 'matriculas';
+  const isBingo = round?.game === 'bingo';
+  const [marking, setMarking] = useState<string | null>(null);
+  // Aviso de «¡Línea!» o «¡Bingo!», ligado a su ronda.
+  const [cheer, setCheer] = useState<{ roundId: string; text: string } | null>(null);
   const probable = readPayload(round?.payload);
   const guess = useMemo(() => (isGuessWho ? readGuessWhoPayload(round?.payload) : null), [isGuessWho, round?.payload]);
   const quiz = useMemo(() => (isSongQuiz ? readSongQuizPayload(round?.payload) : null), [isSongQuiz, round?.payload]);
   const trivia = useMemo(() => (isTrivial ? readTrivialPayload(round?.payload) : null), [isTrivial, round?.payload]);
   const challenge = useMemo(() => (isPlates ? readPlateChallenge(round?.payload) : null), [isPlates, round?.payload]);
+  const cards = useMemo(() => (isBingo ? readBingoCards(round?.payload) : {}), [isBingo, round?.payload]);
+  const myCard = myId !== null ? (cards[myId] ?? null) : null;
+  const myBingo = useMemo(() => (isBingo ? readBingoAnswer(myAnswer?.answer) : null), [isBingo, myAnswer]);
+  const myMarked = useMemo(() => new Set(myBingo?.marked ?? []), [myBingo]);
   const probableOptions = probable.options;
   const options = useMemo<readonly GameOption[]>(
     () => (guess ? guess.options : quiz ? quiz.options : trivia ? trivia.options : (probableOptions ?? [])),
@@ -110,7 +131,9 @@ export default function JuegosScreen() {
         ? TRIVIAL_SECONDS
         : isPlates
           ? PLATE_SECONDS
-          : PROBABLE_SECONDS;
+          : isBingo
+            ? BINGO_SECONDS
+            : PROBABLE_SECONDS;
   const endsAt = round?.ends_at ? new Date(round.ends_at).getTime() : null;
   const secondsLeft = endsAt ? Math.max(0, Math.ceil((endsAt - now) / 1000)) : 0;
   const active = round?.status === 'activa';
@@ -129,7 +152,8 @@ export default function JuegosScreen() {
   // El conductor conduce: no se espera su respuesta.
   const playerIds = members.filter((member) => member.role !== 'conductor').map((member) => member.user_id);
   const needed = isGuessWho ? expectedAnswers(playerIds, adderId) : playerIds.length;
-  const everyone = needed > 0 && answeredBy.size >= needed;
+  // En el bingo, answeredBy son quienes han cantado línea: la ronda sigue hasta el bingo o el tiempo.
+  const everyone = !isBingo && needed > 0 && answeredBy.size >= needed;
   useEffect(() => {
     if (!active || roundId === null || revealedRef.current === roundId) return;
     if ((endsAt !== null && now >= endsAt) || everyone) {
@@ -175,6 +199,13 @@ export default function JuegosScreen() {
     await createRound(sessionId, 'trivial', question.payload, question.solution, TRIVIAL_SECONDS);
   };
 
+  /** Bingo: un cartón distinto para cada pasajero que está en el coche ahora. */
+  const startBingo = async () => {
+    const players = members.filter((member) => member.role !== 'conductor').map((member) => member.user_id);
+    if (players.length === 0) throw new AppError('Hace falta al menos un pasajero para jugar al bingo.');
+    await createRound(sessionId, 'bingo', { cards: makeCards(players, Math.random) }, null, BINGO_SECONDS);
+  };
+
   const startPlates = async () => {
     await createRound(sessionId, 'matriculas', { challenge: pickChallenge(Math.random, usedPlateChallenges) }, null, PLATE_SECONDS);
   };
@@ -183,6 +214,7 @@ export default function JuegosScreen() {
     if (game === 'probable') await startProbable();
     else if (game === 'trivial') await startTrivial();
     else if (game === 'matriculas') await startPlates();
+    else if (game === 'bingo') await startBingo();
     else if (game === 'quien_la_puso') await startGuess();
     else if (game === 'adivina_cancion') await startSongQuiz(sessionId, SONG_QUIZ_SECONDS);
   };
@@ -239,6 +271,37 @@ export default function JuegosScreen() {
     } catch (err) {
       setActionError(errorMessage(err));
       return false;
+    }
+  };
+
+  /** Bingo: marca una casilla. Las marcas no se quitan: tócala solo cuando la veas. */
+  const markCell = async (item: string) => {
+    if (round === null || myId === null || myBingo === null) return;
+    setMarking(item);
+    setActionError(null);
+    try {
+      const result = readBingoResult(await bingoMark(round.id, item));
+      const newLine = result.line !== null && myBingo.line === null;
+      setMyAnswerLocal({
+        round_id: round.id,
+        user_id: myId,
+        answer: { marked: [...myBingo.marked, item], ...(result.line !== null ? { line: result.line } : {}), ...(result.bingo ? { bingo: true } : {}) },
+        points: result.points,
+        created_at: new Date().toISOString(),
+      });
+      if (result.bingo) {
+        vibrate();
+        setCheer({ roundId: round.id, text: `¡BINGO! +${result.points} puntos` });
+      } else if (newLine) {
+        vibrate();
+        markAnswered(myId);
+        send('ronda', { roundId: round.id, userId: myId });
+        setCheer({ roundId: round.id, text: `¡Línea! Eres el ${result.line}º en cantarla: +${result.points} puntos` });
+      }
+    } catch (err) {
+      setActionError(errorMessage(err));
+    } finally {
+      setMarking(null);
     }
   };
 
@@ -310,10 +373,39 @@ export default function JuegosScreen() {
     [answers, memberById],
   );
   const myPlate = isPlates && myAnswer ? readPlateAnswer(myAnswer.answer) : null;
+  const bingoRows = useMemo<BingoRow[]>(
+    () =>
+      answers
+        .flatMap((row): BingoRow[] => {
+          const member = memberById.get(row.user_id);
+          if (!member) return [];
+          const answer = readBingoAnswer(row.answer);
+          return [
+            {
+              id: row.user_id,
+              name: member.display_name,
+              avatarKind: member.avatar_kind,
+              avatarValue: member.avatar_value,
+              marked: answer.marked.length,
+              line: answer.line,
+              bingo: answer.bingo,
+              points: row.points,
+            },
+          ];
+        })
+        .sort((a, b) => b.points - a.points || b.marked - a.marked),
+    [answers, memberById],
+  );
+  const bingoWinner = bingoRows.find((row) => row.bingo) ?? null;
+  const cheerText = cheer !== null && cheer.roundId === round?.id ? cheer.text : null;
   const solutionId = readSolutionOption(solution);
   const solutionOption = solutionId ? (options.find((option) => option.id === solutionId) ?? null) : null;
 
   const myResult = (() => {
+    if (isBingo) {
+      if (myPoints > 0) return `Has sumado ${myPoints} puntos`;
+      return isHost ? 'Tú conducías: el bingo era para los pasajeros.' : 'Esta vez no has cantado nada.';
+    }
     if (isPlates) {
       if (myPoints > 0) return `¡Has cazado la tuya! +${myPoints} puntos`;
       return isHost ? 'Tú conducías: este reto era para los pasajeros.' : 'Esta vez no la has encontrado.';
@@ -351,8 +443,16 @@ export default function JuegosScreen() {
                     ? trivia.question
                     : challenge
                       ? describeChallenge(challenge)
-                      : (probable.question ?? '¿…?')}
+                      : isBingo
+                        ? '¡A buscar por la ventanilla!'
+                        : (probable.question ?? '¿…?')}
             </AppText>
+            {isBingo ? (
+              <AppText variant="label" color={colors.textSecondary}>
+                Toca cada casilla cuando la veas (no se puede desmarcar). Primera línea: 30, 20 o 10 puntos según el orden.
+                Cartón completo: 100 más y se acaba la ronda.
+              </AppText>
+            ) : null}
             {trivia?.clue ? (
               <View style={styles.clue}>
                 <Ionicons name="book-outline" size={18} color={colors.primary} />
@@ -377,11 +477,25 @@ export default function JuegosScreen() {
             <View style={styles.progress}>
               <Ionicons name="people" size={18} color={colors.textSecondary} />
               <AppText variant="label" color={colors.textSecondary}>
-                {answeredBy.size} de {needed} {isPlates ? 'la han encontrado' : 'han votado'}
+                {isBingo
+                  ? `${answeredBy.size} ${answeredBy.size === 1 ? 'ha cantado' : 'han cantado'} línea`
+                  : `${answeredBy.size} de ${needed} ${isPlates ? 'la han encontrado' : 'han votado'}`}
               </AppText>
             </View>
           </View>
-          {isPlates ? (
+          {isBingo ? (
+            <>
+              {cheerText ? <Notice tone="success" message={cheerText} /> : null}
+              {isHost ? (
+                <Notice tone="info" message="Tú conduces: el bingo es para los pasajeros. Al final verás quién ha ganado." />
+              ) : myCard ? (
+                <BingoCard card={myCard} marked={myMarked} disabled={secondsLeft <= 0} marking={marking} onMark={(item) => void markCell(item)} />
+              ) : (
+                <Notice tone="info" message="Esta ronda empezó antes de que entraras: no tienes cartón. Espera a la siguiente." />
+              )}
+              <PlateFinders people={finders} emptyText="Nadie ha cantado línea todavía." />
+            </>
+          ) : isPlates ? (
             <>
               {isHost ? (
                 <Notice tone="info" message="Tú conduces: que busquen los pasajeros. Al final verás quién ha ganado." />
@@ -422,7 +536,11 @@ export default function JuegosScreen() {
           <View style={styles.question}>
             <Glow cy={0.1} />
             <Badge label="Resultado" tone="primary" />
-            {challenge ? (
+            {isBingo ? (
+              <AppText variant="display" color={colors.primaryText}>
+                {bingoWinner ? `¡Bingo de ${bingoWinner.name}!` : 'Nadie ha cantado bingo'}
+              </AppText>
+            ) : challenge ? (
               <AppText variant="title">{describeChallenge(challenge)}</AppText>
             ) : trivia ? (
               trivialSolution && solutionOption ? (
@@ -489,11 +607,20 @@ export default function JuegosScreen() {
               {myResult}
             </AppText>
           </View>
-          {isPlates ? <PlateRanking rows={plateRows} /> : <ResultsBars result={result} options={options} icon={isTrivial ? 'location' : 'musical-notes'} />}
+          {isBingo ? (
+            <>
+              <BingoRanking rows={bingoRows} />
+              {myCard ? <BingoCard card={myCard} marked={myMarked} disabled marking={null} /> : null}
+            </>
+          ) : isPlates ? (
+            <PlateRanking rows={plateRows} />
+          ) : (
+            <ResultsBars result={result} options={options} icon={isTrivial ? 'location' : 'musical-notes'} />
+          )}
           {canManage ? (
             <View style={styles.actions}>
               <Button
-                label={isGuessWho || isSongQuiz ? 'Otra canción' : isPlates ? 'Otro reto' : 'Otra pregunta'}
+                label={isGuessWho || isSongQuiz ? 'Otra canción' : isPlates ? 'Otro reto' : isBingo ? 'Otro cartón' : 'Otra pregunta'}
                 icon="refresh"
                 size="lg"
                 loading={starting !== null}

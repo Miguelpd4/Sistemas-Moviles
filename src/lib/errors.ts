@@ -40,6 +40,7 @@ export const RPC_MESSAGES = {
   PLATE_INVALID: 'Escribe la matrícula como 1234 BCD (cuatro números y tres consonantes).',
   PLATE_NO_MATCH: 'Esa matrícula no cumple el reto. ¡Sigue buscando!',
   ALREADY_FOUND: 'Ya has encontrado tu matrícula en esta ronda.',
+  NO_CARD: 'No tienes cartón en esta ronda: entraste después de repartirlos. Espera a la siguiente.',
   INVALID_DESTINATION: 'Ese destino no es válido. Búscalo otra vez.',
   NOT_ENOUGH_SONGS: 'Hacen falta al menos 3 canciones distintas en el viaje (y alguna que no haya salido ya). Añadid más en Música.',
 } as const;

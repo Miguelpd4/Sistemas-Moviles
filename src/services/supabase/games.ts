@@ -68,6 +68,13 @@ export async function submitPlate(roundId: string, plate: string): Promise<numbe
   return data;
 }
 
+/** Bingo de carretera (#48): marca una casilla del propio cartón; devuelve línea, bingo y puntos. */
+export async function bingoMark(roundId: string, item: string): Promise<Json> {
+  const { data, error } = await supabase.rpc('bingo_mark', { p_round_id: roundId, p_item: item });
+  if (error) throw toAppError(error, 'No se ha podido marcar la casilla.');
+  return data;
+}
+
 export async function submitAnswer(roundId: string, answer: Json): Promise<void> {
   const { error } = await supabase.rpc('submit_answer', { p_round_id: roundId, p_answer: answer });
   if (error) throw toAppError(error, 'No se ha podido enviar tu respuesta.');

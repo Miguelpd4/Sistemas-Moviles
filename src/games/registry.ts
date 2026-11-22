@@ -3,7 +3,7 @@ import type { ComponentProps } from 'react';
 
 import type { GameId } from '@/services/supabase/games';
 
-/** Juegos de la sala (S2-09): «probable», «Adivina la canción» (#21), «¿Quién la ha puesto?» (#22), «Trivial del camino» y «Cazamatrículas» (#48). */
+/** Juegos de la sala (S2-09): «probable», «Adivina la canción» (#21), «¿Quién la ha puesto?» (#22), «Bingo de carretera», «Trivial del camino» y «Cazamatrículas» (#48). */
 export type GameInfo = {
   id: GameId;
   name: string;
@@ -36,6 +36,14 @@ export const GAMES: readonly GameInfo[] = [
     description: 'Adivina quién del coche ha puesto la canción que suena.',
     icon: 'account-music',
     minPlayers: 3,
+    available: true,
+  },
+  {
+    id: 'bingo',
+    name: 'Bingo de carretera',
+    description: 'Cada uno con su cartón: marca lo que veas por la ventanilla. ¡Línea y bingo!',
+    icon: 'grid',
+    minPlayers: 2,
     available: true,
   },
   {
