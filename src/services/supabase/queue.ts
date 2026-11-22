@@ -1,6 +1,6 @@
 import { AppError, toAppError } from '@/lib/errors';
 import type { MusicQueueRow } from '@/types/database';
-import type { SpotifyTrack } from '@/types/spotify';
+import type { YouTubeTrack } from '@/types/youtube';
 
 import { supabase } from './client';
 
@@ -21,27 +21,28 @@ export async function getQueue(sessionId: string): Promise<QueueRow[]> {
   return data;
 }
 
-export async function addToQueue(sessionId: string, userId: string, track: SpotifyTrack): Promise<void> {
+export async function addToQueue(sessionId: string, userId: string, track: YouTubeTrack): Promise<void> {
   const { error } = await supabase.from('music_queue').insert({
     session_id: sessionId,
     added_by: userId,
-    spotify_track_id: track.id,
+    source: 'youtube',
+    track_id: track.videoId,
     title: track.title,
     artist: track.artist,
-    album_art_url: track.albumArtUrl,
+    album_art_url: track.thumbnailUrl,
     duration_ms: Math.max(1, Math.round(track.durationMs)),
   });
   if (error) throw toAppError(error, 'No se ha podido añadir la canción.');
 }
 
 /** Turnos de DJ (#20): añade la canción de mi turno (el servidor comprueba que me toca). */
-export async function addDjSong(roundId: string, track: SpotifyTrack): Promise<void> {
+export async function addDjSong(roundId: string, track: YouTubeTrack): Promise<void> {
   const { error } = await supabase.rpc('add_dj_song', {
     p_round_id: roundId,
-    p_track_id: track.id,
+    p_track_id: track.videoId,
     p_title: track.title,
     p_artist: track.artist,
-    p_album_art_url: track.albumArtUrl,
+    p_album_art_url: track.thumbnailUrl,
     p_duration_ms: Math.max(1, Math.round(track.durationMs)),
   });
   if (error) throw toAppError(error, 'No se ha podido añadir la canción.');
@@ -94,5 +95,15 @@ export async function markFinished(id: string): Promise<void> {
     .update({ status: 'reproducida', ended_at: new Date().toISOString() })
     .eq('id', id)
     .eq('status', 'sonando');
+  if (error) throw toAppError(error, 'No se ha podido actualizar la cola.');
+}
+
+/** Solo el conductor (RLS): quita de la cola una canción que no se puede poner (las de Spotify de antes). */
+export async function markSkipped(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('music_queue')
+    .update({ status: 'saltada', ended_at: new Date().toISOString() })
+    .eq('id', id)
+    .eq('status', 'en_cola');
   if (error) throw toAppError(error, 'No se ha podido actualizar la cola.');
 }

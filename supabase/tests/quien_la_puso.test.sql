@@ -31,10 +31,10 @@ select public.join_session('QUIE2345', 'Carlos', 'preset', 'avatar-03', 3::small
 
 -- Bea pone una canción y el conductor la hace sonar
 select pg_temp.como('22222222-2222-2222-2222-222222222222');
-insert into public.music_queue (session_id, spotify_track_id, title, artist, duration_ms, added_by)
+insert into public.music_queue (session_id, track_id, title, artist, duration_ms, added_by)
   select id, 't1', 'Canción 1', 'Artista', 200000, '22222222-2222-2222-2222-222222222222' from viaje;
 select pg_temp.como('11111111-1111-1111-1111-111111111111', false);
-update public.music_queue set status = 'sonando', started_at = now() where spotify_track_id = 't1';
+update public.music_queue set status = 'sonando', started_at = now() where track_id = 't1';
 
 -- 1-3 · Carlos empieza la ronda: tres opciones y la solución no va en el payload
 select pg_temp.como('33333333-3333-3333-3333-333333333333');
@@ -84,7 +84,7 @@ select throws_ok($$ select public.start_guess_who((select id from viaje)) $$,
 
 -- 13 · Sin canción sonando no hay ronda
 select pg_temp.como('11111111-1111-1111-1111-111111111111', false);
-update public.music_queue set status = 'reproducida', ended_at = now() where spotify_track_id = 't1';
+update public.music_queue set status = 'reproducida', ended_at = now() where track_id = 't1';
 select pg_temp.como('33333333-3333-3333-3333-333333333333');
 select throws_ok($$ select public.start_guess_who((select id from viaje)) $$,
   'P0001', 'NOTHING_PLAYING', 'sin canción sonando da NOTHING_PLAYING');

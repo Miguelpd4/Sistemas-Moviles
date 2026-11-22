@@ -8,8 +8,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LicensePlate } from '@/components/coche/LicensePlate';
 import { DriverStats } from '@/components/conductor/DriverStats';
 import { JoinQr } from '@/components/conductor/JoinQr';
+import { MusicPlayer } from '@/components/conductor/MusicPlayer';
 import { NowPlayingLine } from '@/components/conductor/NowPlayingLine';
-import { SpotifyConnect } from '@/components/conductor/SpotifyConnect';
 import { StopBanner } from '@/components/conductor/StopBanner';
 import { TripButton } from '@/components/conductor/TripButton';
 import { PendingList } from '@/components/sala/PendingList';
@@ -22,10 +22,10 @@ import { useSession } from '@/hooks/useSession';
 import { useSongQuizHost } from '@/hooks/useSongQuizHost';
 import { useTripControls } from '@/hooks/useTripControls';
 import { useTripMetrics } from '@/hooks/useTripMetrics';
+import { useYouTubeController } from '@/hooks/useYouTubeController';
 import { carModelTitle } from '@/lib/carCatalog';
 import { errorMessage } from '@/lib/errors';
 import { openLocationSettings } from '@/services/location/tracking';
-import { useSpotifyLogin } from '@/services/spotify/auth';
 import { setJoinMode } from '@/services/supabase/sessions';
 import { ForceDarkTheme, driverColors, fonts, radius, spacing } from '@/theme';
 
@@ -80,18 +80,19 @@ function DriverMode() {
   const queue = useQueue();
   const metrics = useTripMetrics();
   const trip = useTripControls();
-  const spotify = useSpotifyLogin();
+  // El reproductor de YouTube de esta pantalla (#57): lo comparten la cola y «Adivina la canción».
+  const youtube = useYouTubeController();
   const [showQr, setShowQr] = useState(false);
   const [price, setPrice] = useState('');
   const [modeError, setModeError] = useState<string | null>(null);
 
   const tripStatus = session?.status ?? 'abierta';
   const running = tripStatus === 'en_curso';
-  // También en la web (para pruebas): ahí controla la app de Spotify abierta con la cuenta del conductor.
-  const playerEnabled = isHost && spotify.connected && tripStatus !== 'finalizada';
+  // Solo el móvil del conductor pone la música (en Android y en la web, sin cuentas).
+  const playerEnabled = isHost && tripStatus !== 'finalizada';
   // «Adivina la canción» (#21): mientras suena el fragmento, la cola espera.
-  const quiz = useSongQuizHost(playerEnabled);
-  const player = useHostPlayer(queue, playerEnabled && !quiz.playing);
+  const quiz = useSongQuizHost(youtube, playerEnabled);
+  const player = useHostPlayer(queue, youtube, playerEnabled && !quiz.playing);
 
   // Al abrir la hoja del precio, se rellena con el propuesto (ajuste durante el render, como
   // recomienda React para el estado que depende de otro valor, en vez de un efecto).
@@ -177,15 +178,16 @@ function DriverMode() {
         )}
         {running && showQr ? <Button label="Ocultar QR" variant="driver" onPress={() => setShowQr(false)} /> : null}
 
-        <SpotifyConnect
-          connected={spotify.connected}
-          ready={spotify.ready}
-          busy={spotify.busy}
-          error={spotify.error}
-          playerError={player.error}
-          isPlaying={player.spotify?.isPlaying ?? false}
-          onConnect={spotify.login}
-        />
+        {playerEnabled ? (
+          <MusicPlayer
+            playerRef={youtube.playerRef}
+            onEvent={youtube.onEvent}
+            state={youtube.state}
+            playerError={youtube.error}
+            hasSong={queue.nowPlaying !== null}
+            queueError={player.error}
+          />
+        ) : null}
 
         {trip.error ? <Notice message={trip.error} /> : null}
         {trip.needsSettings ? <Button label="Abrir ajustes de ubicación" variant="driver" icon="settings-outline" onPress={openLocationSettings} /> : null}

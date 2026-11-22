@@ -11,7 +11,7 @@ Proyecto de la asignatura de Sistemas Móviles (Universidad de Córdoba), grupo 
   - Android: la URL abre la app (intent filter / App Link).
   - iPhone: el sistema lee la pegatina y abre la web en Safari.
 - **Sin Expo Go**: el NFC necesita *development build* (`react-native-nfc-manager` + su config plugin).
-- **Música**: la cola vive en Supabase. Solo el conductor se autentica en Spotify (PKCE, Premium) y su móvil reproduce. Los pasajeros buscan a través de una Edge Function. Spotify no permite crear una Jam real por API ni da fragmentos de preview a apps nuevas: "adivina la canción" se hace con *seek* a un segundo aleatorio durante 10 s en el móvil del conductor. Modo desarrollo de Spotify: máximo 5 usuarios autorizados, 10 resultados por búsqueda. Para probar sin compilar, el Modo conductor también funciona desde la web: no suena en el navegador, sino que controla la app de Spotify abierta con la cuenta del conductor (ordenador o móvil); los tokens van en `localStorage` y la Redirect URI web es `https://copi-navy.vercel.app/spotify-auth`.
+- **Música** (#57): la cola vive en Supabase y suena con **YouTube dentro de COPI**, en el reproductor del Modo conductor (API IFrame: en un WebView en Android, directa en la web). **Nadie inicia sesión**: la búsqueda va por la Edge Function `youtube-search` con la clave de COPI (secreto `YOUTUBE_API_KEY`), unas 100 búsquedas nuevas al día gratis (las repetidas en 6 h no gastan). YouTube exige que el vídeo se vea y no deja sonar en segundo plano. «Adivina la canción» pone 10 s de otra canción del viaje desde un segundo al azar en ese mismo reproductor y luego vuelve a la de la cola. Spotify se descartó (Premium, app de Spotify abierta, máximo 5 cuentas); las canciones de Spotify que quedaron de las pruebas tienen `source = 'spotify'` y no se ponen.
 - **Gastos**: botón iniciar/finalizar viaje; distancia GPS × consumo (L/100 km) × precio (€/L), repartido **a partes iguales entre todos los ocupantes, conductor incluido** (el conductor también paga su parte), más gastos extra (peajes, parking) con foto del ticket. Pagos: enlace PayPal.me con importe, Bizum (teléfono + importe para copiar) y "marcar como pagado". Sin pasarela real (opcional: Stripe en modo pruebas).
 - **Seguridad vial**: el conductor solo ve el Modo conductor (pantalla única, oscura). Todo lo que administra la sala lo hace el **copiloto designado**.
 
@@ -21,14 +21,14 @@ Proyecto de la asignatura de Sistemas Móviles (Universidad de Córdoba), grupo 
 - **TypeScript estricto**. Nada de `any` salvo justificación en comentario.
 - Estilos: `StyleSheet` de React Native con los tokens de `src/theme/` (colores, espaciado, radios, tipografía). Sin NativeWind.
 - Backend: **Supabase** (PostgreSQL + RLS estricto, Auth anónimo para pasajeros y email para conductores, Realtime, Edge Functions, Storage).
-- Integraciones: Spotify Web API, `expo-location` + `expo-task-manager` (GPS en segundo plano), `react-native-nfc-manager`, `expo-image-picker`, `expo-speech`, `expo-notifications`, `react-native-maps`.
+- Integraciones: YouTube Data API v3 (búsqueda) y API IFrame de YouTube (reproductor, con `react-native-webview`), `expo-location` + `expo-task-manager` (GPS en segundo plano), `react-native-nfc-manager`, `expo-image-picker`, `expo-speech`, `expo-notifications`, `react-native-maps`.
 - Datos abiertos: API REST de carburantes del Ministerio (precios), Wikipedia GeoSearch (trivial), Open-Meteo (tiempo).
 
 ## Configuración
 
 - `app.config.ts` (no `app.json`): lee `EXPO_PUBLIC_WEB_URL` para registrar el App Link `https://<dominio>/c/...`.
 - Variables públicas en `src/config/env.ts`; nunca leer `process.env` en otros sitios.
-- Lo que solo existe en Android tiene una versión `.web.ts` (NFC, GPS). Los tokens de Spotify se guardan en SecureStore (`tokens.ts`) o en `localStorage` (`tokens.web.ts`) con la misma lógica (`tokenStore.ts`).
+- Lo que solo existe en Android tiene una versión `.web.ts` o `.web.tsx` (NFC, GPS, reproductor de YouTube).
 
 ## Estructura de carpetas
 
@@ -44,7 +44,7 @@ src/
   hooks/                 # hooks personalizados (useSession, useQueue, useTripTracking...)
   context/               # SessionProvider (Realtime de la sala)
   services/supabase/     # cliente, consultas, RPC
-  services/spotify/      # llamadas vía Edge Functions
+  services/youtube/      # búsqueda (Edge Function) y página del reproductor
   services/nfc/          # lectura NFC
   lib/                   # utilidades puras (cálculo de gastos, formato)
   theme/                 # tokens de diseño (colores, espaciado, radios, tipografía)
@@ -80,7 +80,7 @@ Reglas RLS:
 - Función `is_member(session_id)`: solo los miembros leen los datos de su sesión.
 - Unirse es una RPC `join_session(nfc_code, ...)` *security definer* que comprueba sesión activa y modo de entrada; nunca un `insert` directo. Funciones auxiliares de las políticas: `is_member`, `is_admin`, `is_host`, `shares_session`.
 - Solo el conductor escribe en `sessions`, `trip_points` y `trip_metrics`. Cada usuario escribe solo sus votos y respuestas.
-- La clave `service_role` y los secretos de Spotify solo existen en Edge Functions.
+- La clave `service_role` y la clave de YouTube solo existen en Edge Functions.
 
 Realtime:
 - Un solo canal privado por sala y móvil, `sala:<session_id>` (`src/services/supabase/roomChannel.ts`), compartido por la Sala y el Modo conductor. Lo reparte `SessionProvider`; los componentes escuchan con `useSession().on(...)` o `useBroadcast(...)`. No crear canales sueltos con `supabase.channel()` en las pantallas.
@@ -92,7 +92,7 @@ Realtime:
 ## Reglas de código
 
 - Solo componentes funcionales y hooks. Nada de APIs obsoletas: seguir la documentación actual de Expo y Supabase.
-- `try/catch` robusto en NFC, GPS, Spotify y peticiones a Supabase, con mensajes claros al usuario.
+- `try/catch` robusto en NFC, GPS, YouTube y peticiones a Supabase, con mensajes claros al usuario.
 - Rendimiento: `useMemo`, `useCallback`, `React.memo`; cada pestaña se suscribe solo a su canal. Los Broadcast no deben re-renderizar toda la sala.
 - La lógica de cálculo (reparto, distancia) va en `src/lib/` como funciones puras con pruebas en Jest.
 - Toda tabla nueva lleva su migración y su política RLS en `supabase/migrations/`.
@@ -122,11 +122,11 @@ Sprints de una semana (lunes a domingo). Si algo se retrasa se recorta el Sprint
 ## Estado actual
 
 - Sprint 1 y Sprint 2 hechos en código y en `main`, incluidos los juegos musicales (#20 turnos de DJ, #21 «Adivina la canción», #22 «¿Quién la ha puesto?»). El detalle, lo que falta probar y la lista de la demo están en `docs/sprints/sprint-1.md` y `docs/sprints/sprint-2.md`. El plan completo de los 4 sprints está en el documento compartido del equipo.
-- Supabase (proyecto `dytieuiyvrsejwvcvirh`) tiene aplicadas todas las migraciones de `supabase/migrations/` (la última, `20261118172404_turnos_dj.sql`) y desplegadas las funciones `fuel-price`, `spotify-search` y `youtube-search`.
+- Supabase (proyecto `dytieuiyvrsejwvcvirh`) tiene aplicadas todas las migraciones de `supabase/migrations/` (la última, `20261122095446_musica_youtube.sql`) y desplegadas las funciones `fuel-price` y `youtube-search`. `spotify-search` sigue desplegada pero ya no se usa: se puede borrar en Supabase, junto con los secretos `SPOTIFY_CLIENT_ID` y `SPOTIFY_CLIENT_SECRET`.
 - Una migración aplicada con el conector de Supabase queda registrada con la hora de aplicación: renombrar el fichero a esa versión para que `supabase db push` no la repita.
 - `npm run typecheck`, `npm run lint` y `npm test` pasan sin errores; mantenedlos así antes de abrir cada PR. Las plantillas de issue (historia y fallo) y de PR están en `.github/`.
-- Música con YouTube (#54): Spotify se descarta (Premium, app abierta, máximo 5 cuentas). Está la **prueba técnica** (Perfil → Prueba de YouTube): nadie inicia sesión; la Edge Function `youtube-search` busca con la clave de COPI (secreto `YOUTUBE_API_KEY`, unas 100 búsquedas nuevas al día) y la canción suena dentro de COPI con la API IFrame (`src/components/musica/YouTubePlayer.tsx`). Configuración en `docs/youtube-google-cloud.md`. Falta pasar la cola, Música, el Modo conductor y «Adivina la canción» a YouTube.
-- Para cerrar el Sprint 2 falta probar en móviles reales (Spotify Premium, GPS en coche y los juegos musicales), ensayar la demo, la retrospectiva y la etiqueta `v0.2-sprint2` con el APK.
+- Música con YouTube: prueba técnica en #54 (Perfil → Prueba de YouTube) y la sala entera en #57: cola, Música, turnos de DJ, Modo conductor (`MusicPlayer`, `useYouTubeController`, `useHostPlayer`) y «Adivina la canción» (`useSongQuizHost`). Configuración en `docs/youtube-google-cloud.md`.
+- Para cerrar el Sprint 2 falta probar en móviles reales (la música con YouTube, GPS en coche y los juegos musicales), ensayar la demo, la retrospectiva y la etiqueta `v0.2-sprint2` con el APK.
 
 ## Compilar en Windows
 

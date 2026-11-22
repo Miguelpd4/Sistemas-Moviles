@@ -98,7 +98,6 @@ export default function PerfilScreen() {
           <AppText variant="caption" color={colors.textSecondary}>
             Solo se ven en desarrollo.
           </AppText>
-          <Button label="Prueba de Spotify" variant="secondary" icon="musical-notes-outline" onPress={() => router.push('/dev/spotify')} />
           <Button label="Prueba de GPS y carburantes" variant="secondary" icon="navigate-outline" onPress={() => router.push('/dev/gps')} />
           <Button
             label="Abrir la pegatina DEMO2345"

@@ -31,11 +31,11 @@ select public.join_session('ADIV2345', 'Carlos', 'preset', 'avatar-03', 3::small
 
 -- Cuatro canciones distintas en el viaje
 select pg_temp.como('22222222-2222-2222-2222-222222222222');
-insert into public.music_queue (session_id, spotify_track_id, title, artist, duration_ms, added_by)
+insert into public.music_queue (session_id, track_id, title, artist, duration_ms, added_by)
   select id, 't' || n, 'Canción ' || n, 'Artista', 200000, '22222222-2222-2222-2222-222222222222'
   from viaje, generate_series(1, 3) n;
 select pg_temp.como('33333333-3333-3333-3333-333333333333');
-insert into public.music_queue (session_id, spotify_track_id, title, artist, duration_ms, added_by)
+insert into public.music_queue (session_id, track_id, title, artist, duration_ms, added_by)
   select id, 't4', 'Canción 4', 'Artista', 200000, '33333333-3333-3333-3333-333333333333' from viaje;
 
 -- 1 · Sin canción sonando no hay ronda (el reproductor no está en marcha)
@@ -43,7 +43,7 @@ select throws_ok($$ select public.start_song_quiz((select id from viaje)) $$,
   'P0001', 'NOTHING_PLAYING', 'sin canción sonando da NOTHING_PLAYING');
 
 select pg_temp.como('11111111-1111-1111-1111-111111111111', false);
-update public.music_queue set status = 'sonando', started_at = now() where spotify_track_id = 't1';
+update public.music_queue set status = 'sonando', started_at = now() where track_id = 't1';
 
 -- 2-4 · Carlos empieza: cuatro opciones y ni la canción ni el segundo van en el payload
 select pg_temp.como('33333333-3333-3333-3333-333333333333');

@@ -34,11 +34,11 @@ npx supabase link --project-ref <ref-del-proyecto>
 npx supabase db push
 ```
 
-4. Edge Functions (búsqueda de Spotify y precio del combustible):
+4. Edge Functions (búsqueda de música en YouTube y precio del combustible). La clave de YouTube se crea como explica [docs/youtube-google-cloud.md](docs/youtube-google-cloud.md):
 
 ```bash
-npx supabase secrets set SPOTIFY_CLIENT_ID=<client id> SPOTIFY_CLIENT_SECRET=<client secret>
-npx supabase functions deploy spotify-search
+npx supabase secrets set YOUTUBE_API_KEY=<clave de la YouTube Data API v3>
+npx supabase functions deploy youtube-search
 npx supabase functions deploy fuel-price
 ```
 
@@ -46,7 +46,7 @@ Para trabajar en local (con Docker): `npx supabase start`, `npx supabase db rese
 
 ### 3. Variables de entorno
 
-`.env.example` ya trae los valores del proyecto (URL y clave publicable de Supabase, dominio de Vercel y *Client ID* de Spotify): basta con copiarlo a `.env`. Son todos públicos; el *Client secret* de Spotify y la clave `service_role` van solo en Supabase → Edge Functions → Secrets.
+`.env.example` ya trae los valores del proyecto (URL y clave publicable de Supabase y dominio de Vercel): basta con copiarlo a `.env`. Son todos públicos; la clave de YouTube y la clave `service_role` van solo en Supabase → Edge Functions → Secrets.
 
 ### 4. Web en Vercel (pasajeros con iPhone)
 
@@ -75,9 +75,9 @@ Hay que recompilar solo al añadir un paquete nativo o cambiar `app.config.ts`.
 
 En la app: *Mi coche* → crea tu cuenta y registra el coche → copia la URL de la tarjeta *Tu pegatina*. Grábala en una NTAG213/215 con la app NFC Tools (*Escribir → Añadir un registro → URL*).
 
-### 7. Spotify (prueba técnica)
+### 7. Música con YouTube
 
-En [Spotify for Developers](https://developer.spotify.com/dashboard): crea una app con *Web API*, añade el *Redirect URI* `copi://spotify-auth` y, en *User Management*, el email de la cuenta Premium del conductor. La prueba está en *Perfil → Pruebas técnicas* (solo en desarrollo).
+La música se busca en YouTube y suena dentro de COPI, en el Modo conductor, sin que nadie inicie sesión. Solo hace falta la clave de YouTube en los secretos de Supabase: [docs/youtube-google-cloud.md](docs/youtube-google-cloud.md). Hay una prueba técnica en *Perfil → Prueba de YouTube*.
 
 ## Scripts
 
