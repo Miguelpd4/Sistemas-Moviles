@@ -65,5 +65,6 @@ const styles = StyleSheet.create({
   box: { backgroundColor: driverColors.surface, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm + 2 },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   text: { flex: 1, gap: 2 },
-  player: { borderRadius: radius.sm },
+  // YouTube pide que el reproductor se vea y mida al menos 200 × 200 px: 356 × 200 (16:9), sin ocupar toda la pantalla.
+  player: { width: '100%', maxWidth: 356, height: 200, aspectRatio: undefined, alignSelf: 'center', borderRadius: radius.sm },
 });
