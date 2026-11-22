@@ -3,6 +3,7 @@ import { useMemo, type ComponentProps } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AppText, Badge, Glow, Screen, ScreenHeader } from '@/components/ui';
+import { MemoryWall } from '@/components/recuerdos/MemoryWall';
 import { TripMapCard } from '@/components/viaje/TripMapCard';
 import { useNow } from '@/hooks/useNow';
 import { useSession } from '@/hooks/useSession';
@@ -16,12 +17,14 @@ type MciName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 /**
  * Pestaña Viaje: mapa en vivo con el destino, la ruta y la hora de llegada (#29), y distancia,
- * tiempo, velocidad media, precio del combustible y lo que lleva costando (S2-08).
+ * tiempo, velocidad media, precio del combustible y lo que lleva costando (S2-08), y el muro de
+ * fotos del viaje (#34).
  */
 export default function ViajeScreen() {
   const { colors } = useTheme();
   const styles = useStyles(makeStyles);
-  const { sessionId, session, members, isAdmin } = useSession();
+  const { sessionId, session, members, isAdmin, myId } = useSession();
+  const names = useMemo(() => new Map(members.map((member) => [member.user_id, member.display_name])), [members]);
   const metrics = useTripMetrics();
   const now = useNow(1000);
 
@@ -97,6 +100,8 @@ export default function ViajeScreen() {
           El reparto definitivo, con peajes y parking, se hace al terminar el viaje.
         </AppText>
       </View>
+
+      <MemoryWall sessionId={sessionId} endedAt={null} myId={myId} names={names} />
       <View style={styles.bottomSpace} />
     </Screen>
   );

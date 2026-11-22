@@ -1,9 +1,10 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState, type ComponentProps } from 'react';
+import { useEffect, useMemo, useState, type ComponentProps } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { CarHero } from '@/components/coche/CarHero';
+import { MemoryWall } from '@/components/recuerdos/MemoryWall';
 import { SettlementCard } from '@/components/pagos/SettlementCard';
 import { AppText, Avatar, Badge, Button, Notice, Screen, ScreenHeader } from '@/components/ui';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,7 +21,7 @@ type MciName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 /**
  * Resumen del viaje: distancia, tiempo, quién iba y el reparto de los gastos con quién paga a quién
- * (#25). La canción del viaje y el ganador de los juegos llegan más adelante.
+ * (#25), y el muro de fotos del viaje, que se borra 7 días después (#34).
  */
 export default function ResumenScreen() {
   const { colors } = useTheme();
@@ -57,10 +58,11 @@ export default function ResumenScreen() {
       ? tripMoney(money.expenses, money.payments, members.map((member) => member.user_id), myId)
       : null;
   const started = session?.startedAt !== null;
+  const names = useMemo(() => new Map(members.map((member) => [member.user_id, member.display_name])), [members]);
 
   return (
     <Screen edges={['top', 'bottom']}>
-      <ScreenHeader eyebrow="Fin del viaje" title="¡Habéis llegado!" />
+      <ScreenHeader eyebrow="Fin del viaje" title="¡Habéis llegado!" back={router.canGoBack()} />
       {error ? <Notice message={error} /> : null}
       {session === null && error === null ? <ActivityIndicator color={colors.primary} /> : null}
 
@@ -95,6 +97,8 @@ export default function ResumenScreen() {
               ))}
             </View>
           </View>
+
+          {started ? <MemoryWall sessionId={session.id} endedAt={session.endedAt} myId={myId} names={names} /> : null}
         </>
       ) : null}
 

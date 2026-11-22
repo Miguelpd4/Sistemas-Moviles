@@ -54,3 +54,7 @@ verify_jwt = false
 # #54 · La propia función comprueba la sesión (también anónima).
 [functions.youtube-search]
 verify_jwt = false
+
+# #34 · La llama pg_cron cada hora y solo borra fotos ya caducadas: no necesita sesión.
+[functions.purge-memories]
+verify_jwt = false
