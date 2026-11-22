@@ -87,7 +87,7 @@ export default function PerfilScreen() {
       <View style={styles.section}>
         <AppText variant="heading">Música con YouTube (prueba)</AppText>
         <AppText variant="caption" color={colors.textSecondary}>
-          Conecta tu cuenta de Google, busca una canción y comprueba que suena dentro de COPI.
+          Busca una canción y comprueba que suena dentro de COPI, sin cuentas ni otras apps.
         </AppText>
         <Button label="Prueba de YouTube" variant="secondary" icon="logo-youtube" onPress={() => router.push('/dev/youtube')} />
       </View>

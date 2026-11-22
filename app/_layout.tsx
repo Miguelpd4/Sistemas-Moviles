@@ -66,7 +66,6 @@ function ThemedStack(): ReactNode {
         <Stack.Screen name="resumen/[sessionId]" />
         <Stack.Screen name="c/[carCode]" />
         <Stack.Screen name="spotify-auth" options={{ animation: 'none' }} />
-        <Stack.Screen name="youtube-auth" options={{ animation: 'none' }} />
         <Stack.Screen
           name="dev/spotify"
           options={{

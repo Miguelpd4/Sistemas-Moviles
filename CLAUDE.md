@@ -122,10 +122,10 @@ Sprints de una semana (lunes a domingo). Si algo se retrasa se recorta el Sprint
 ## Estado actual
 
 - Sprint 1 y Sprint 2 hechos en código y en `main`, incluidos los juegos musicales (#20 turnos de DJ, #21 «Adivina la canción», #22 «¿Quién la ha puesto?»). El detalle, lo que falta probar y la lista de la demo están en `docs/sprints/sprint-1.md` y `docs/sprints/sprint-2.md`. El plan completo de los 4 sprints está en el documento compartido del equipo.
-- Supabase (proyecto `dytieuiyvrsejwvcvirh`) tiene aplicadas todas las migraciones de `supabase/migrations/` (la última, `20261118172404_turnos_dj.sql`) y desplegadas las funciones `fuel-price` y `spotify-search`.
+- Supabase (proyecto `dytieuiyvrsejwvcvirh`) tiene aplicadas todas las migraciones de `supabase/migrations/` (la última, `20261118172404_turnos_dj.sql`) y desplegadas las funciones `fuel-price`, `spotify-search` y `youtube-search`.
 - Una migración aplicada con el conector de Supabase queda registrada con la hora de aplicación: renombrar el fichero a esa versión para que `supabase db push` no la repita.
 - `npm run typecheck`, `npm run lint` y `npm test` pasan sin errores; mantenedlos así antes de abrir cada PR. Las plantillas de issue (historia y fallo) y de PR están en `.github/`.
-- Música con YouTube (#54): Spotify se descarta (Premium, app abierta, máximo 5 cuentas). Está la **prueba técnica** (Perfil → Prueba de YouTube): cada conductor conecta su cuenta de Google (`src/services/youtube/`), busca con la YouTube Data API y suena dentro de COPI con la API IFrame (`src/components/musica/YouTubePlayer.tsx`). Configuración de Google Cloud en `docs/youtube-google-cloud.md`. Falta pasar la cola, Música, el Modo conductor y «Adivina la canción» a YouTube.
+- Música con YouTube (#54): Spotify se descarta (Premium, app abierta, máximo 5 cuentas). Está la **prueba técnica** (Perfil → Prueba de YouTube): nadie inicia sesión; la Edge Function `youtube-search` busca con la clave de COPI (secreto `YOUTUBE_API_KEY`, unas 100 búsquedas nuevas al día) y la canción suena dentro de COPI con la API IFrame (`src/components/musica/YouTubePlayer.tsx`). Configuración en `docs/youtube-google-cloud.md`. Falta pasar la cola, Música, el Modo conductor y «Adivina la canción» a YouTube.
 - Para cerrar el Sprint 2 falta probar en móviles reales (Spotify Premium, GPS en coche y los juegos musicales), ensayar la demo, la retrospectiva y la etiqueta `v0.2-sprint2` con el APK.
 
 ## Compilar en Windows
