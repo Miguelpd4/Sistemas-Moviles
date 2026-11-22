@@ -77,5 +77,5 @@ export function PaymentActions({ paymentId, amountCents, iPay, payee, onMarkPaid
 }
 
 const styles = StyleSheet.create({
-  box: { gap: spacing.sm, paddingLeft: spacing.xl + spacing.sm, paddingBottom: spacing.sm },
+  box: { gap: spacing.sm, paddingBottom: spacing.sm },
 });
