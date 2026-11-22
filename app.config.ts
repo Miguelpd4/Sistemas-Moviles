@@ -30,8 +30,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   userInterfaceStyle: 'automatic',
   android: {
     package: 'es.uco.copi',
+    // Logo: una «C» naranja (#FF6A1A) sobre negro (scripts/logo.py).
     adaptiveIcon: {
-      backgroundColor: '#0E0F11',
+      backgroundColor: '#000000',
       foregroundImage: './assets/images/android-icon-foreground.png',
       backgroundImage: './assets/images/android-icon-background.png',
       monochromeImage: './assets/images/android-icon-monochrome.png',
@@ -57,9 +58,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-splash-screen',
       {
-        backgroundColor: '#0E0F11',
+        backgroundColor: '#000000',
         image: './assets/images/splash-icon.png',
-        imageWidth: 76,
+        imageWidth: 120,
       },
     ],
     'react-native-nfc-manager',
