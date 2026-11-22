@@ -4,7 +4,10 @@ import { StyleSheet, View } from 'react-native';
 import { AppText, Avatar, Badge, Glow } from '@/components/ui';
 import { formatEuros } from '@/lib/format';
 import type { MoneyPayment, TripMoney } from '@/lib/tripMoney';
+import type { Payee } from '@/services/supabase/payments';
 import { radius, spacing, useStyles, useTheme, type Palette } from '@/theme';
+
+import { PaymentActions } from './PaymentActions';
 
 type Person = { user_id: string; display_name: string; avatar_kind: string; avatar_value: string };
 
@@ -12,13 +15,15 @@ type Props = {
   money: TripMoney;
   people: readonly Person[];
   myId: string | null;
+  /** #27 · Pagar y marcar como pagado (sin esto, la tarjeta solo informa). */
+  pay?: { payees: Record<string, Payee>; onMarkPaid: (paymentId: string) => Promise<void> };
 };
 
 /**
  * Reparto del viaje (#25): lo que me toca pagar o cobrar, de dónde sale (gasolina y extras) y
  * todos los pagos entre ocupantes con su estado.
  */
-export function SettlementCard({ money, people, myId }: Props) {
+export function SettlementCard({ money, people, myId, pay }: Props) {
   const { colors } = useTheme();
   const styles = useStyles(makeStyles);
   const byId = new Map(people.map((person) => [person.user_id, person]));
@@ -65,23 +70,34 @@ export function SettlementCard({ money, people, myId }: Props) {
           {others.map((payment) => {
             const from = byId.get(payment.from_user);
             const paid = payment.status === 'pagado';
+            const mine = myId !== null && (payment.from_user === myId || payment.to_user === myId);
             return (
-              <View
-                key={`${payment.from_user}-${payment.to_user}`}
-                style={styles.payment}
-                accessible
-                accessibilityLabel={`${name(payment.from_user)} paga ${formatEuros(payment.amount_cents)} a ${name(payment.to_user)}. ${paid ? 'Pagado' : 'Pendiente'}`}
-              >
-                {from ? <Avatar kind={from.avatar_kind} value={from.avatar_value} size={36} /> : null}
-                <View style={styles.paymentText}>
-                  <AppText variant="bodyStrong" numberOfLines={1}>
-                    {name(payment.from_user)} → {name(payment.to_user)}
-                  </AppText>
-                  <AppText variant="caption" color={colors.textSecondary}>
-                    {formatEuros(payment.amount_cents)}
-                  </AppText>
+              <View key={`${payment.from_user}-${payment.to_user}`}>
+                <View
+                  style={styles.payment}
+                  accessible
+                  accessibilityLabel={`${name(payment.from_user)} paga ${formatEuros(payment.amount_cents)} a ${name(payment.to_user)}. ${paid ? 'Pagado' : 'Pendiente'}`}
+                >
+                  {from ? <Avatar kind={from.avatar_kind} value={from.avatar_value} size={36} /> : null}
+                  <View style={styles.paymentText}>
+                    <AppText variant="bodyStrong" numberOfLines={1}>
+                      {name(payment.from_user)} → {name(payment.to_user)}
+                    </AppText>
+                    <AppText variant="caption" color={colors.textSecondary}>
+                      {formatEuros(payment.amount_cents)}
+                    </AppText>
+                  </View>
+                  <Badge label={paid ? 'Pagado' : 'Pendiente'} tone={paid ? 'success' : 'neutral'} />
                 </View>
-                <Badge label={paid ? 'Pagado' : 'Pendiente'} tone={paid ? 'success' : 'neutral'} />
+                {pay && mine && !paid && payment.id ? (
+                  <PaymentActions
+                    paymentId={payment.id}
+                    amountCents={payment.amount_cents}
+                    iPay={payment.from_user === myId}
+                    payee={pay.payees[payment.to_user]}
+                    onMarkPaid={pay.onMarkPaid}
+                  />
+                ) : null}
               </View>
             );
           })}
@@ -92,9 +108,6 @@ export function SettlementCard({ money, people, myId }: Props) {
         </AppText>
       ) : null}
 
-      <AppText variant="caption" color={colors.textTertiary} style={styles.center}>
-        Pagar con PayPal o Bizum y marcarlo como pagado llega en la próxima versión.
-      </AppText>
     </View>
   );
 }
