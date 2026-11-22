@@ -78,7 +78,9 @@ export default function ResumenScreen() {
           </View>
 
           {money.error ? <Notice message={money.error} /> : null}
-          {summary ? <SettlementCard money={summary} people={members} myId={myId} /> : null}
+          {summary ? (
+            <SettlementCard money={summary} people={members} myId={myId} pay={{ payees: money.payees, onMarkPaid: money.markPaid }} />
+          ) : null}
 
           <View style={styles.people}>
             <AppText variant="title">Quién iba</AppText>

@@ -3,7 +3,7 @@ import { splitEqually } from './split';
 /** Resumen del dinero de un viaje (#25) a partir de los gastos y los pagos que crea end_trip. */
 
 export type MoneyExpense = { kind: string; amount_cents: number; paid_by: string };
-export type MoneyPayment = { from_user: string; to_user: string; amount_cents: number; status: string };
+export type MoneyPayment = { id?: string; from_user: string; to_user: string; amount_cents: number; status: string };
 
 export type TripMoney = {
   totalCents: number;
