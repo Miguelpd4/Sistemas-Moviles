@@ -7,7 +7,6 @@ const values = {
   EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   EXPO_PUBLIC_WEB_URL: process.env.EXPO_PUBLIC_WEB_URL,
   EXPO_PUBLIC_SPOTIFY_CLIENT_ID: process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID,
-  EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
 };
 
 type EnvName = keyof typeof values;
@@ -31,6 +30,4 @@ export const env = {
   webUrl: required('EXPO_PUBLIC_WEB_URL').replace(/\/+$/, ''),
   /** Client ID de la app COPI en Spotify for Developers (lo usa el conductor para conectar su Spotify). */
   spotifyClientId: optional('EXPO_PUBLIC_SPOTIFY_CLIENT_ID'),
-  /** Client ID web de Google Cloud: el conductor conecta su cuenta de Google para YouTube (#54). */
-  googleWebClientId: optional('EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID'),
 };

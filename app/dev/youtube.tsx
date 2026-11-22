@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { FlatList, Platform, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 
 import { AlbumArt } from '@/components/musica/AlbumArt';
 import { YouTubePlayer, type YouTubePlayerHandle } from '@/components/musica/YouTubePlayer';
@@ -7,8 +7,6 @@ import { AppText, Badge, Button, Card, Notice, Screen, TextField } from '@/compo
 import { errorMessage } from '@/lib/errors';
 import { formatClock } from '@/lib/format';
 import { playerErrorMessage } from '@/lib/youtube';
-import { useYouTubeLogin } from '@/services/youtube/auth';
-import { youtubeRedirectUri } from '@/services/youtube/config';
 import { searchYouTube } from '@/services/youtube/search';
 import { spacing, useTheme } from '@/theme';
 import type { YouTubePlayerEvent, YouTubeTrack } from '@/types/youtube';
@@ -17,12 +15,12 @@ import type { YouTubePlayerEvent, YouTubeTrack } from '@/types/youtube';
 const CLIP_MS = 10_000;
 
 /**
- * Prueba técnica de YouTube (#54): conectar la cuenta de Google del conductor, buscar y que suene
- * dentro de COPI. Se ve también en la versión release y en la web para poder probarla en el móvil.
+ * Prueba técnica de YouTube (#54): buscar con la Edge Function youtube-search (clave de COPI, sin
+ * cuentas) y que suene dentro de COPI. Se ve también en la versión release y en la web para poder
+ * probarla en el móvil.
  */
 export default function DevYouTubeScreen() {
   const { colors } = useTheme();
-  const login = useYouTubeLogin();
   const playerRef = useRef<YouTubePlayerHandle>(null);
   const clipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [query, setQuery] = useState('Columbia Quevedo');
@@ -92,29 +90,14 @@ export default function DevYouTubeScreen() {
         Prueba de YouTube
       </AppText>
       <AppText color={colors.textSecondary}>
-        Cuenta de Google del conductor, búsqueda y reproducción dentro de COPI (#54).
+        Búsqueda en YouTube y reproducción dentro de COPI (#54). Nadie inicia sesión: la búsqueda usa la clave de COPI
+        guardada en Supabase.
       </AppText>
 
       <Card>
-        <AppText variant="heading">1. Cuenta de Google</AppText>
-        {Platform.OS === 'web' ? (
-          <AppText variant="caption" color={colors.textSecondary}>
-            Redirect URI (web): {youtubeRedirectUri()}
-          </AppText>
-        ) : null}
-        {login.error !== null ? <Notice message={login.error} /> : null}
-        <AppText>{login.connected ? `Conectado${login.account ? ` como ${login.account}` : ''}` : 'Sin conectar'}</AppText>
-        {login.connected ? (
-          <Button label="Desconectar" variant="secondary" onPress={() => void login.logout()} />
-        ) : (
-          <Button label="Conectar YouTube" icon="logo-youtube" onPress={login.login} disabled={!login.ready} loading={login.busy} />
-        )}
-      </Card>
-
-      <Card>
-        <AppText variant="heading">2. Buscar canciones</AppText>
+        <AppText variant="heading">1. Buscar canciones</AppText>
         <TextField label="Canción o artista" value={query} onChangeText={setQuery} returnKeyType="search" onSubmitEditing={search} />
-        <Button label="Buscar" icon="search" onPress={search} loading={busy} disabled={!login.connected || query.trim().length < 2} />
+        <Button label="Buscar" icon="search" onPress={search} loading={busy} disabled={query.trim().length < 2} />
         <FlatList
           data={tracks}
           scrollEnabled={false}
@@ -138,7 +121,7 @@ export default function DevYouTubeScreen() {
       </Card>
 
       <Card>
-        <AppText variant="heading">3. Reproductor dentro de COPI</AppText>
+        <AppText variant="heading">2. Reproductor dentro de COPI</AppText>
         <YouTubePlayer ref={playerRef} onEvent={onPlayerEvent} />
         {playerError ? <Notice message={playerError} /> : null}
         <AppText>

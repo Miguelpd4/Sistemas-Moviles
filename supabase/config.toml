@@ -53,3 +53,7 @@ verify_jwt = false
 
 [functions.spotify-search]
 verify_jwt = false
+
+# #54 · Igual que spotify-search: la propia función comprueba la sesión (también anónima).
+[functions.youtube-search]
+verify_jwt = false
