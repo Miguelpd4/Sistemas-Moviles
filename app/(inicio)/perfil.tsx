@@ -83,6 +83,15 @@ export default function PerfilScreen() {
         <Button label="¿Conduces? Registra tu coche" variant="ghost" icon="car-sport-outline" onPress={() => router.push('/mi-coche')} />
       ) : null}
 
+      {/* Prueba de YouTube (#54): también en la versión release y en la web, para probarla en el móvil. */}
+      <View style={styles.section}>
+        <AppText variant="heading">Música con YouTube (prueba)</AppText>
+        <AppText variant="caption" color={colors.textSecondary}>
+          Conecta tu cuenta de Google, busca una canción y comprueba que suena dentro de COPI.
+        </AppText>
+        <Button label="Prueba de YouTube" variant="secondary" icon="logo-youtube" onPress={() => router.push('/dev/youtube')} />
+      </View>
+
       {__DEV__ ? (
         <View style={styles.section}>
           <AppText variant="heading">Pruebas técnicas</AppText>
