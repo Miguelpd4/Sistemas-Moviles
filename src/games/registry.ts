@@ -3,7 +3,7 @@ import type { ComponentProps } from 'react';
 
 import type { GameId } from '@/services/supabase/games';
 
-/** Juegos de la sala (S2-09). Disponibles: «probable», «Adivina la canción» (#21) y «¿Quién la ha puesto?» (#22). */
+/** Juegos de la sala (S2-09): «probable», «Adivina la canción» (#21), «¿Quién la ha puesto?» (#22), «Trivial del camino» y «Cazamatrículas» (#48). */
 export type GameInfo = {
   id: GameId;
   name: string;
@@ -41,18 +41,18 @@ export const GAMES: readonly GameInfo[] = [
   {
     id: 'trivial',
     name: 'Trivial del camino',
-    description: 'Preguntas sobre los sitios por los que pasáis.',
+    description: 'Preguntas sobre los sitios de Wikipedia que tenéis cerca. 30 segundos por pregunta.',
     icon: 'map-marker-question',
     minPlayers: 2,
-    available: false,
+    available: true,
   },
   {
     id: 'matriculas',
     name: 'Cazamatrículas',
-    description: 'Busca letras y números en las matrículas de otros coches.',
+    description: 'Un reto y 3 minutos: el primero que vea una matrícula que lo cumpla, gana.',
     icon: 'card-text',
     minPlayers: 2,
-    available: false,
+    available: true,
   },
 ];
 

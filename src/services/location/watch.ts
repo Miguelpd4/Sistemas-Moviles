@@ -27,3 +27,18 @@ export async function watchMyPosition(onFix: (fix: Fix) => void, onError: (messa
     throw new AppError('No se ha podido activar el GPS. Comprueba que la ubicación está encendida.', { code: 'LOCATION_OFF' });
   }
 }
+
+/** #48 · La posición de este móvil una vez (para el Trivial del camino). */
+export async function getMyPosition(): Promise<Fix> {
+  const permission = await Location.requestForegroundPermissionsAsync();
+  if (!permission.granted) {
+    throw new AppError('Sin permiso de ubicación no sabemos qué hay cerca. Actívalo en los ajustes.', { code: 'LOCATION_DENIED' });
+  }
+  try {
+    const last = await Location.getLastKnownPositionAsync({ maxAge: 120_000 });
+    const position = last ?? (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }));
+    return { lat: position.coords.latitude, lon: position.coords.longitude, accuracy: position.coords.accuracy };
+  } catch {
+    throw new AppError('No se ha podido saber dónde estás. Comprueba que la ubicación está encendida.', { code: 'LOCATION_OFF' });
+  }
+}

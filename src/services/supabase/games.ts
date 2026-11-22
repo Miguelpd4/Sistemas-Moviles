@@ -61,6 +61,13 @@ export async function skipDjTurn(roundId: string): Promise<void> {
   if (error) throw toAppError(error, 'No se ha podido saltar el turno.');
 }
 
+/** Cazamatrículas (#48): la matrícula vista; el servidor comprueba el reto y devuelve los puntos. */
+export async function submitPlate(roundId: string, plate: string): Promise<number> {
+  const { data, error } = await supabase.rpc('submit_plate', { p_round_id: roundId, p_plate: plate });
+  if (error) throw toAppError(error, 'No se ha podido enviar la matrícula.');
+  return data;
+}
+
 export async function submitAnswer(roundId: string, answer: Json): Promise<void> {
   const { error } = await supabase.rpc('submit_answer', { p_round_id: roundId, p_answer: answer });
   if (error) throw toAppError(error, 'No se ha podido enviar tu respuesta.');

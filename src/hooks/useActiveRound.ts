@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { errorMessage } from '@/lib/errors';
+import { challengeKey, readPlateChallenge } from '@/lib/games/matriculas';
 import { getAnswers, getRounds, getSolution, type AnswerRow, type RoundRow } from '@/services/supabase/games';
 import type { Json } from '@/types/database';
 
@@ -129,6 +130,34 @@ export function useActiveRound(kind: 'pantalla' | 'dj' = 'pantalla') {
     [rounds],
   );
 
+  /** Juegos del camino (#48): sitios que ya fueron respuesta y retos de matrícula ya jugados. */
+  const usedTrivialIds = useMemo(
+    () =>
+      rounds
+        .filter((item) => item.game === 'trivial')
+        .flatMap((item) => {
+          const payload = item.payload as { options?: unknown } | null;
+          return Array.isArray(payload?.options)
+            ? payload.options.flatMap((option: unknown) =>
+                typeof option === 'object' && option !== null && typeof (option as { id?: unknown }).id === 'string'
+                  ? [(option as { id: string }).id]
+                  : [],
+              )
+            : [];
+        }),
+    [rounds],
+  );
+  const usedPlateChallenges = useMemo(
+    () =>
+      rounds
+        .filter((item) => item.game === 'matriculas')
+        .flatMap((item) => {
+          const challenge = readPlateChallenge(item.payload);
+          return challenge ? [challengeKey(challenge)] : [];
+        }),
+    [rounds],
+  );
+
   const usedQuestionIds = useMemo(
     () =>
       rounds
@@ -153,6 +182,8 @@ export function useActiveRound(kind: 'pantalla' | 'dj' = 'pantalla') {
     solution: roundStatus !== 'activa' && loadedSolution?.roundId === roundId ? loadedSolution.value : null,
     usedQuestionIds,
     usedQueueIds,
+    usedTrivialIds,
+    usedPlateChallenges,
     loading,
     error,
     reload,

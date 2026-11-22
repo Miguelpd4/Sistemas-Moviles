@@ -115,6 +115,7 @@ export const plate = {
   stars: '#F7C600',
   background: '#FFFFFF',
   text: '#111111',
+  placeholder: '#9A9A9A',
   border: '#1A1A1A',
 } as const;
 
