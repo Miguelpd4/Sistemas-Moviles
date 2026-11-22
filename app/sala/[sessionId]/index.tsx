@@ -63,7 +63,7 @@ export default function SalaScreen() {
             label="Volver al Modo conductor"
             icon="speedometer-outline"
             size="lg"
-            onPress={() => router.replace({ pathname: '/conductor', params: { sessionId } })}
+            onPress={() => router.dismissTo({ pathname: '/conductor', params: { sessionId } })}
           />
         </View>
       </Screen>
@@ -162,7 +162,8 @@ export default function SalaScreen() {
           label="Ir al Modo conductor"
           icon="speedometer-outline"
           variant="secondary"
-          onPress={() => router.push({ pathname: '/conductor', params: { sessionId } })}
+          // Vuelve al Modo conductor que ya estaba abierto (si no, lo abre): nunca dos a la vez.
+          onPress={() => router.dismissTo({ pathname: '/conductor', params: { sessionId } })}
         />
       ) : me ? (
         <Button label="Salir del viaje" icon="exit-outline" variant="danger" onPress={() => setConfirmLeave(true)} />

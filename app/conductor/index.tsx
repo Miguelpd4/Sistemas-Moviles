@@ -17,6 +17,7 @@ import { AppText, Button, Notice, Sheet, Switch, TextField } from '@/components/
 import { SessionProvider } from '@/context/SessionProvider';
 import { useCurrentTrip } from '@/hooks/useCurrentTrip';
 import { useHostPlayer } from '@/hooks/useHostPlayer';
+import { usePlayerOwnership } from '@/hooks/usePlayerOwnership';
 import { useQueue } from '@/hooks/useQueue';
 import { useSession } from '@/hooks/useSession';
 import { useSongQuizHost } from '@/hooks/useSongQuizHost';
@@ -88,8 +89,14 @@ function DriverMode() {
 
   const tripStatus = session?.status ?? 'abierta';
   const running = tripStatus === 'en_curso';
-  // Solo el móvil del conductor pone la música (en Android y en la web, sin cuentas).
-  const playerEnabled = isHost && tripStatus !== 'finalizada';
+  // Solo el móvil del conductor pone la música (en Android y en la web, sin cuentas), y solo desde
+  // un Modo conductor a la vez: si hubiera dos abiertos, sonaría doble.
+  const ownsPlayer = usePlayerOwnership();
+  const playerEnabled = isHost && ownsPlayer && tripStatus !== 'finalizada';
+  const pauseMusic = youtube.pause;
+  useEffect(() => {
+    if (!ownsPlayer) pauseMusic();
+  }, [ownsPlayer, pauseMusic]);
   // «Adivina la canción» (#21): mientras suena el fragmento, la cola espera.
   const quiz = useSongQuizHost(youtube, playerEnabled);
   const player = useHostPlayer(queue, youtube, playerEnabled && !quiz.playing);
@@ -178,7 +185,7 @@ function DriverMode() {
         )}
         {running && showQr ? <Button label="Ocultar QR" variant="driver" onPress={() => setShowQr(false)} /> : null}
 
-        {playerEnabled ? (
+        {isHost && tripStatus !== 'finalizada' ? (
           <MusicPlayer
             playerRef={youtube.playerRef}
             onEvent={youtube.onEvent}
