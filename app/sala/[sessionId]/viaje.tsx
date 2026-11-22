@@ -1,8 +1,9 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import type { ComponentProps } from 'react';
+import { useMemo, type ComponentProps } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AppText, Badge, Glow, Screen, ScreenHeader } from '@/components/ui';
+import { TripMapCard } from '@/components/viaje/TripMapCard';
 import { useNow } from '@/hooks/useNow';
 import { useSession } from '@/hooks/useSession';
 import { useTripMetrics } from '@/hooks/useTripMetrics';
@@ -14,13 +15,13 @@ import { radius, spacing, useStyles, useTheme, type Palette } from '@/theme';
 type MciName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 /**
- * Pestaña Viaje (S2-08, primera versión): distancia, tiempo, velocidad media, precio del
- * combustible y lo que lleva costando. El mapa en vivo llega en el Sprint 3.
+ * Pestaña Viaje: mapa en vivo con el destino, la ruta y la hora de llegada (#29), y distancia,
+ * tiempo, velocidad media, precio del combustible y lo que lleva costando (S2-08).
  */
 export default function ViajeScreen() {
   const { colors } = useTheme();
   const styles = useStyles(makeStyles);
-  const { session, members } = useSession();
+  const { sessionId, session, members, isAdmin } = useSession();
   const metrics = useTripMetrics();
   const now = useNow(1000);
 
@@ -32,6 +33,12 @@ export default function ViajeScreen() {
   const cost = price && session ? fuelCostCents(distance, session.consumptionL100km, price) : 0;
   const ids = members.map((member) => member.user_id);
   const share = ids.length > 0 ? Math.max(...Object.values(splitEqually(cost, ids))) : 0;
+  const carLat = metrics?.last_lat ?? null;
+  const carLon = metrics?.last_lon ?? null;
+  const car = useMemo(() => (carLat !== null && carLon !== null ? { lat: carLat, lon: carLon } : null), [carLat, carLon]);
+  const mapCard = (
+    <TripMapCard sessionId={sessionId} destination={session?.destination ?? null} car={session?.status === 'en_curso' ? car : null} canEdit={isAdmin} />
+  );
 
   if (session?.status !== 'en_curso') {
     return (
@@ -41,9 +48,10 @@ export default function ViajeScreen() {
           <Glow cy={0.15} />
           <MaterialCommunityIcons name="map-marker-path" size={48} color={colors.primary} />
           <AppText variant="heading" style={styles.center}>
-            Cuando el conductor pulse «Iniciar viaje», aquí verás los kilómetros, el tiempo y lo que va costando la gasolina.
+            Cuando el conductor pulse «Iniciar viaje», aquí verás el mapa, los kilómetros, el tiempo y lo que va costando la gasolina.
           </AppText>
         </View>
+        {session?.status === 'abierta' ? mapCard : null}
       </Screen>
     );
   }
@@ -51,6 +59,8 @@ export default function ViajeScreen() {
   return (
     <Screen>
       <ScreenHeader eyebrow="En marcha" title="Viaje" />
+
+      {mapCard}
 
       <View style={styles.hero} accessible accessibilityLabel={`Habéis recorrido ${formatKm(distance)}`}>
         <Glow cy={0.9} />
