@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { memo } from 'react';
+import { memo, type ComponentProps } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AppText, Avatar } from '@/components/ui';
@@ -8,10 +8,15 @@ import { radius, spacing, useTheme } from '@/theme';
 
 import type { GameOption } from './OptionList';
 
-type Props = { result: TallyResult; options: readonly GameOption[] };
+type Props = {
+  result: TallyResult;
+  options: readonly GameOption[];
+  /** Icono de las opciones sin avatar (canciones o sitios). */
+  icon?: ComponentProps<typeof Ionicons>['name'];
+};
 
 /** Resultado de una ronda: barras con los votos de cada opción (persona o canción) y trofeo para quien gana. */
-function ResultsBarsBase({ result, options }: Props) {
+function ResultsBarsBase({ result, options, icon = 'musical-notes' }: Props) {
   const { colors } = useTheme();
   const byId = new Map(options.map((option) => [option.id, option]));
   const max = Math.max(1, ...result.rows.map((row) => row.votes));
@@ -27,7 +32,7 @@ function ResultsBarsBase({ result, options }: Props) {
               <Avatar kind={option.avatarKind ?? 'preset'} value={option.avatarValue} size={40} />
             ) : (
               <View style={[styles.icon, { backgroundColor: colors.primarySoft }]}>
-                <Ionicons name="musical-notes" size={20} color={colors.primary} />
+                <Ionicons name={icon} size={20} color={colors.primary} />
               </View>
             )}
             <View style={styles.barBlock}>
