@@ -2,7 +2,7 @@ import { useKeepAwake } from 'expo-keep-awake';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LicensePlate } from '@/components/coche/LicensePlate';
@@ -162,6 +162,10 @@ function DriverMode() {
         />
 
         <DriverStats distanceM={metrics?.distance_m ?? 0} startedAt={session.startedAt} passengers={passengers.length} connected={connected} />
+
+        {running && isHost && Platform.OS === 'web' ? (
+          <Notice tone="info" message="En la web el viaje se mide mientras esta página esté abierta. No cambies de app ni bloquees el móvil." />
+        ) : null}
 
         <NowPlayingLine item={queue.nowPlaying} upcoming={queue.upcoming.length} />
         {quiz.playing ? <Notice tone="info" message="Adivina la canción: suena un fragmento de 10 s y luego vuelve la cola." /> : null}

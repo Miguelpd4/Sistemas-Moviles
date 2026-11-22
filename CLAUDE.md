@@ -28,7 +28,7 @@ Proyecto de la asignatura de Sistemas Móviles (Universidad de Córdoba), grupo 
 
 - `app.config.ts` (no `app.json`): lee `EXPO_PUBLIC_WEB_URL` para registrar el App Link `https://<dominio>/c/...`.
 - Variables públicas en `src/config/env.ts`; nunca leer `process.env` en otros sitios.
-- Lo que solo existe en Android tiene una versión `.web.ts` o `.web.tsx` (NFC, GPS, reproductor de YouTube).
+- Lo que solo existe en Android tiene una versión `.web.ts` o `.web.tsx` (NFC, GPS, reproductor de YouTube). El GPS del viaje también funciona en la web (`tracking.web.ts`, ubicación del navegador con la página abierta); la subida de puntos es común (`tripFlush.ts`).
 
 ## Estructura de carpetas
 

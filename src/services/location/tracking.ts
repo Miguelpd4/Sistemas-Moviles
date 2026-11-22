@@ -3,62 +3,27 @@ import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { Linking } from 'react-native';
 
-import { totalDistanceM, type GeoPoint } from '@/lib/distance';
+import type { GeoPoint } from '@/lib/distance';
 import { AppError } from '@/lib/errors';
-import { updateMetrics, uploadPoints } from '@/services/supabase/trip';
 import { driverColors } from '@/theme/tokens';
 
-import {
-  appendPoints,
-  dropPending,
-  getActiveTrip,
-  getAllPoints,
-  getLastUpload,
-  getPendingPoints,
-  setLastUpload,
-  type StoredPoint,
-} from './tripStorage';
+import { flushTrip } from './tripFlush';
+import { appendPoints, getActiveTrip, type StoredPoint } from './tripStorage';
+
+export { flushTrip };
 
 /**
  * GPS del viaje en segundo plano (S2-08). La tarea se define al cargar este módulo, por eso se
  * importa desde app/_layout.tsx: Android la necesita registrada al arrancar.
  *
  * Con un viaje activo, cada punto se guarda en el móvil y se sube a trip_points en lotes (10
- * puntos o 30 segundos); después se recalcula la distancia y se actualiza trip_metrics, que los
+ * puntos o 15 segundos); después se recalcula la distancia y se actualiza trip_metrics, que los
  * pasajeros ven en vivo. Sin viaje activo (pantalla de pruebas), los puntos solo se guardan.
  */
 export const GPS_TASK = 'copi-gps';
 const DEV_KEY = 'copi:dev-gps:puntos';
-const BATCH_SIZE = 10;
-// Cada 15 s como mucho: es lo que tarda el coche en moverse en el mapa en vivo (#29).
-const BATCH_MS = 15_000;
 
 type TaskData = { locations?: Location.LocationObject[] };
-
-let flushing = false;
-
-/** Sube los puntos pendientes y actualiza la distancia. Si falla, se quedan para la próxima. */
-export async function flushTrip(sessionId: string, force = false): Promise<number | null> {
-  if (flushing) return null;
-  flushing = true;
-  try {
-    const pending = await getPendingPoints(sessionId);
-    const last = await getLastUpload(sessionId);
-    if (!force && pending.length < BATCH_SIZE && Date.now() - last < BATCH_MS) return null;
-    if (pending.length > 0) {
-      await uploadPoints(sessionId, pending);
-      await dropPending(sessionId, pending.length);
-    }
-    const all = await getAllPoints(sessionId);
-    const distance = totalDistanceM(all);
-    const lastPoint = all[all.length - 1];
-    await updateMetrics(sessionId, distance, lastPoint ? { lat: lastPoint.lat, lon: lastPoint.lon } : null);
-    await setLastUpload(sessionId, Date.now());
-    return distance;
-  } finally {
-    flushing = false;
-  }
-}
 
 TaskManager.defineTask<TaskData>(GPS_TASK, async ({ data, error }) => {
   if (error || !data?.locations?.length) return;

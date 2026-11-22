@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Platform } from 'react-native';
 
 import { totalDistanceM } from '@/lib/distance';
 import { AppError, errorMessage } from '@/lib/errors';
@@ -41,9 +40,9 @@ export function useTripControls() {
   const status = session?.status;
   const fuelType = session?.fuelType;
 
-  // Si la app se reinicia a mitad de viaje, el GPS vuelve a arrancar.
+  // Si la app (o la página web) se reinicia a mitad de viaje, el GPS vuelve a arrancar.
   useEffect(() => {
-    if (Platform.OS === 'web' || !isHost || status !== 'en_curso') return;
+    if (!isHost || status !== 'en_curso') return;
     void (async () => {
       try {
         if ((await getActiveTrip()) !== sessionId) await setActiveTrip(sessionId);
