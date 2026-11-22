@@ -111,13 +111,24 @@ export type SessionWithCar = {
   nfcCode: string;
   seats: number;
   car: CarLook;
+  /** #29 · Adónde va el viaje (lo pone el conductor o el copiloto). */
+  destination: Destination | null;
 };
+
+export type Destination = { name: string; lat: number; lon: number };
+
+function readDestination(name: unknown, lat: unknown, lon: unknown): Destination | null {
+  if (typeof name !== 'string' || lat === null || lon === null || lat === undefined || lon === undefined) return null;
+  const latN = Number(lat);
+  const lonN = Number(lon);
+  return Number.isFinite(latN) && Number.isFinite(lonN) ? { name, lat: latN, lon: lonN } : null;
+}
 
 export async function getSessionWithCar(sessionId: string): Promise<SessionWithCar> {
   const { data, error } = await supabase
     .from('sessions')
     .select(
-      'id, status, join_mode, host_id, started_at, ended_at, fuel_price_eur_l, consumption_l_100km, cars ( name, nfc_code, seats, fuel_type, make, model, version, color, photo_path, model_image_url )',
+      'id, status, join_mode, host_id, started_at, ended_at, fuel_price_eur_l, consumption_l_100km, destination_name, destination_lat, destination_lon, cars ( name, nfc_code, seats, fuel_type, make, model, version, color, photo_path, model_image_url )',
     )
     .eq('id', sessionId)
     .single();
@@ -146,6 +157,7 @@ export async function getSessionWithCar(sessionId: string): Promise<SessionWithC
       photoPath: car.photo_path,
       imageUrl: car.model_image_url,
     },
+    destination: readDestination(data.destination_name, data.destination_lat, data.destination_lon),
   };
 }
 
@@ -196,6 +208,8 @@ export function applySessionRow(session: SessionWithCar, row: Record<string, unk
     startedAt: typeof row.started_at === 'string' ? row.started_at : session.startedAt,
     endedAt: typeof row.ended_at === 'string' ? row.ended_at : session.endedAt,
     fuelPriceEurL: row.fuel_price_eur_l != null ? Number(row.fuel_price_eur_l) : session.fuelPriceEurL,
+    destination:
+      'destination_lat' in row ? readDestination(row.destination_name, row.destination_lat, row.destination_lon) : session.destination,
   };
 }
 
@@ -220,4 +234,15 @@ export async function setJoinMode(sessionId: string, mode: JoinMode): Promise<vo
 export async function leaveSession(sessionId: string): Promise<void> {
   const { error } = await supabase.rpc('leave_session', { p_session_id: sessionId });
   if (error) throw toAppError(error, 'No se ha podido salir del viaje.');
+}
+
+/** #29 · El conductor o el copiloto ponen (o quitan, con null) el destino del viaje. */
+export async function setDestination(sessionId: string, destination: Destination | null): Promise<void> {
+  const { error } = await supabase.rpc('set_destination', {
+    p_session_id: sessionId,
+    p_name: destination?.name ?? null,
+    p_lat: destination?.lat ?? null,
+    p_lon: destination?.lon ?? null,
+  });
+  if (error) throw toAppError(error, 'No se ha podido guardar el destino.');
 }

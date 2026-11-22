@@ -30,7 +30,8 @@ import {
 export const GPS_TASK = 'copi-gps';
 const DEV_KEY = 'copi:dev-gps:puntos';
 const BATCH_SIZE = 10;
-const BATCH_MS = 30_000;
+// Cada 15 s como mucho: es lo que tarda el coche en moverse en el mapa en vivo (#29).
+const BATCH_MS = 15_000;
 
 type TaskData = { locations?: Location.LocationObject[] };
 

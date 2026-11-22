@@ -527,6 +527,10 @@ export type Database = {
       vote_skip: { Args: { p_queue_id: string }; Returns: Json };
       skip_song: { Args: { p_queue_id: string }; Returns: undefined };
       mark_payment_paid: { Args: { p_payment_id: string }; Returns: undefined };
+      set_destination: {
+        Args: { p_session_id: string; p_name: string | null; p_lat: number | null; p_lon: number | null };
+        Returns: undefined;
+      };
       start_trip: {
         Args: { p_session_id: string; p_fuel_price: number; p_lat: number; p_lon: number };
         Returns: undefined;

@@ -6,6 +6,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { LicensePlate } from '@/components/coche/LicensePlate';
+import { DriverEta } from '@/components/conductor/DriverEta';
 import { DriverStats } from '@/components/conductor/DriverStats';
 import { JoinQr } from '@/components/conductor/JoinQr';
 import { MusicPlayer } from '@/components/conductor/MusicPlayer';
@@ -154,6 +155,11 @@ function DriverMode() {
         </View>
 
         {status === 'sin_conexion' ? <Notice tone="info" message="Reconectando con la sala…" /> : null}
+
+        <DriverEta
+          destination={session.destination}
+          car={running && metrics?.last_lat != null && metrics.last_lon != null ? { lat: metrics.last_lat, lon: metrics.last_lon } : null}
+        />
 
         <DriverStats distanceM={metrics?.distance_m ?? 0} startedAt={session.startedAt} passengers={passengers.length} connected={connected} />
 
