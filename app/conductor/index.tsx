@@ -158,7 +158,7 @@ function DriverMode() {
 
         <DriverEta
           destination={session.destination}
-          car={running && metrics?.last_lat != null && metrics.last_lon != null ? { lat: metrics.last_lat, lon: metrics.last_lon } : null}
+          car={metrics?.last_lat != null && metrics.last_lon != null ? { lat: metrics.last_lat, lon: metrics.last_lon } : null}
         />
 
         <DriverStats distanceM={metrics?.distance_m ?? 0} startedAt={session.startedAt} passengers={passengers.length} connected={connected} />

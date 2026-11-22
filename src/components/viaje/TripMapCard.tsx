@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AppText, Notice } from '@/components/ui';
+import { useMyLocation } from '@/hooks/useMyLocation';
 import { useTripRoute } from '@/hooks/useTripRoute';
 import { formatDuration, formatKm } from '@/lib/format';
 import type { LatLon } from '@/lib/route';
@@ -16,26 +17,34 @@ import type { MapState } from './mapState';
 type Props = {
   sessionId: string;
   destination: Destination | null;
-  /** Última posición del coche (GPS del conductor), o null si aún no ha salido. */
+  /** Última posición del coche que sube el conductor (si este móvil no da su ubicación). */
   car: LatLon | null;
   /** Conductor o copiloto: pueden poner el destino. */
   canEdit: boolean;
 };
 
-/** Mapa en vivo con el coche, el destino, la ruta y la hora de llegada (#29). */
+/**
+ * Mapa en vivo como un navegador (#29): sale desde tu ubicación (GPS de este móvil; si no la da,
+ * la última del coche), enseña la ruta que queda y el tiempo, los km y la hora de llegada al avanzar.
+ */
 export function TripMapCard({ sessionId, destination, car, canEdit }: Props) {
   const { colors } = useTheme();
   const styles = useStyles(makeStyles);
-  const { route, remainingS, arrival, error } = useTripRoute(car, destination);
+  const me = useMyLocation();
+  const here = useMemo(
+    () => (me.position ? { lat: me.position.lat, lon: me.position.lon } : car),
+    [me.position, car],
+  );
+  const { remainingM, remainingS, arrival, path, error } = useTripRoute(here, destination);
 
   const state = useMemo<MapState>(
     () => ({
-      car,
+      car: here,
       dest: destination ? { lat: destination.lat, lon: destination.lon, name: destination.name } : null,
-      path: route?.path ?? [],
+      path,
       follow: true,
     }),
-    [car, destination, route],
+    [here, destination, path],
   );
 
   return (
@@ -51,28 +60,33 @@ export function TripMapCard({ sessionId, destination, car, canEdit }: Props) {
         </View>
       )}
 
-      {route && remainingS !== null && arrival ? (
-        <View style={styles.eta} accessible accessibilityLabel={`Llegada a las ${arrival}, faltan ${formatKm(route.distanceM)}`}>
-          <AppText color={colors.textSecondary}>Llegada</AppText>
+      {remainingS !== null && remainingM !== null && arrival ? (
+        <View
+          style={styles.eta}
+          accessible
+          accessibilityLabel={`Quedan ${formatDuration(remainingS)} y ${formatKm(remainingM)}. Llegada a las ${arrival}`}
+        >
           <AppText variant="title" color={colors.primaryText}>
-            {arrival}
+            {formatDuration(remainingS)}
           </AppText>
           <AppText color={colors.textSecondary} style={styles.flex}>
-            · faltan {formatKm(route.distanceM)} · {formatDuration(remainingS)}
+            ({formatKm(remainingM)}) · llegada {arrival}
           </AppText>
         </View>
-      ) : destination && car === null ? (
+      ) : destination && here === null ? (
         <AppText variant="caption" color={colors.textSecondary}>
-          La hora de llegada sale cuando el conductor inicie el viaje y el GPS marque dónde estáis.
+          Buscando dónde estás para calcular la ruta…
         </AppText>
       ) : null}
       {error ? <Notice message={error} /> : null}
+      {me.error && here === null ? <Notice message={me.error} /> : null}
 
-      {destination || car ? (
-        <LiveMap state={state} />
-      ) : null}
+      {destination || here ? <LiveMap state={state} /> : null}
       <AppText variant="caption" color={colors.textTertiary}>
-        Mapa © OpenStreetMap · ruta de OSRM. La posición se actualiza cada 15 s con el GPS del conductor.
+        {me.position
+          ? 'Sales desde tu ubicación en directo. Si os salís de la ruta, se calcula otra.'
+          : 'Sin tu ubicación: se usa la última posición del coche (cada 15 s).'}{' '}
+        Mapa © OpenStreetMap · rutas de OSRM.
       </AppText>
     </View>
   );

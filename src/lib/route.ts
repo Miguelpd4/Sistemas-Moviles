@@ -43,17 +43,62 @@ export function arrivalClock(now: number, durationS: number): string {
   return new Date(now + Math.max(0, durationS) * 1000).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 }
 
-/** Cuándo volver a pedir la ruta: al cambiar de destino, al moverse más de 300 m o cada 2 min. */
-export const ROUTE_MOVE_M = 300;
-export const ROUTE_MAX_AGE_MS = 120_000;
+/** Cuándo volver a pedir la ruta: al cambiar de destino, al salirse de ella o cada 5 min. */
+export const ROUTE_OFF_M = 120;
+export const ROUTE_MAX_AGE_MS = 300_000;
+/** Como mucho una petición cada 20 s aunque sigáis fuera de la ruta (OSRM es un servidor público). */
+export const ROUTE_MIN_GAP_MS = 20_000;
 
 export function shouldRefreshRoute(
-  last: { from: LatLon; to: LatLon; at: number } | null,
-  from: LatLon,
+  last: { to: LatLon; at: number } | null,
   to: LatLon,
   now: number,
+  offRouteM: number,
 ): boolean {
   if (last === null) return true;
   if (last.to.lat !== to.lat || last.to.lon !== to.lon) return true;
-  return haversineM(last.from, from) > ROUTE_MOVE_M || now - last.at > ROUTE_MAX_AGE_MS;
+  if (now - last.at < ROUTE_MIN_GAP_MS) return false;
+  return offRouteM > ROUTE_OFF_M || now - last.at > ROUTE_MAX_AGE_MS;
+}
+
+export type RouteProgress = {
+  /** Lo que queda de ruta desde el punto más cercano a la posición. */
+  remainingM: number;
+  remainingS: number;
+  /** A cuántos metros de la ruta está la posición (si es mucho, hay que recalcularla). */
+  offRouteM: number;
+  /** El trozo que queda por recorrer, empezando en la posición. */
+  path: [number, number][];
+};
+
+/** Cuánto queda de una ruta estando en `pos`, como hace un navegador al avanzar. */
+export function routeProgress(route: Route, pos: LatLon): RouteProgress {
+  const { path } = route;
+  if (path.length < 2) {
+    return { remainingM: route.distanceM, remainingS: route.durationS, offRouteM: 0, path: [[pos.lat, pos.lon], ...path] };
+  }
+  const point = (p: [number, number]): LatLon => ({ lat: p[0], lon: p[1] });
+  let nearest = 0;
+  let nearestM = Infinity;
+  const cumulative: number[] = [0];
+  let total = 0;
+  path.forEach((p, i) => {
+    const prev = path[i - 1];
+    if (prev) {
+      total += haversineM(point(prev), point(p));
+      cumulative.push(total);
+    }
+    const d = haversineM(pos, point(p));
+    if (d < nearestM) {
+      nearestM = d;
+      nearest = i;
+    }
+  });
+  const ratio = total > 0 ? Math.max(0, total - (cumulative[nearest] ?? 0)) / total : 1;
+  return {
+    remainingM: Math.round(route.distanceM * ratio),
+    remainingS: Math.round(route.durationS * ratio),
+    offRouteM: Math.round(nearestM),
+    path: [[pos.lat, pos.lon], ...path.slice(nearest + 1)],
+  };
 }

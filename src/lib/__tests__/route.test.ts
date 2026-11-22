@@ -1,4 +1,4 @@
-import { arrivalClock, parseOsrmRoute, parsePlaces, shouldRefreshRoute } from '../route';
+import { arrivalClock, parseOsrmRoute, parsePlaces, routeProgress, shouldRefreshRoute } from '../route';
 
 describe('parseOsrmRoute', () => {
   it('lee distancia, duración y el trazado en [lat, lon]', () => {
@@ -35,17 +35,60 @@ describe('arrivalClock', () => {
 });
 
 describe('shouldRefreshRoute', () => {
-  const from = { lat: 37.88, lon: -4.77 };
-  const to = { lat: 37.39, lon: -5.98 };
-  it('pide ruta la primera vez y al cambiar de destino', () => {
-    expect(shouldRefreshRoute(null, from, to, 0)).toBe(true);
-    expect(shouldRefreshRoute({ from, to, at: 0 }, from, { lat: 40, lon: -3 }, 1000)).toBe(true);
+  const to = { lat: 37.88, lon: -4.78 };
+
+  it('pide la ruta la primera vez y al cambiar de destino', () => {
+    expect(shouldRefreshRoute(null, to, 0, 0)).toBe(true);
+    expect(shouldRefreshRoute({ to, at: 0 }, { lat: 40, lon: -3 }, 1000, 0)).toBe(true);
   });
-  it('no la pide si casi no se ha movido y es reciente', () => {
-    expect(shouldRefreshRoute({ from, to, at: 0 }, { lat: 37.881, lon: -4.77 }, to, 60_000)).toBe(false);
+
+  it('no la repite mientras sigáis por ella', () => {
+    expect(shouldRefreshRoute({ to, at: 0 }, to, 60_000, 30)).toBe(false);
   });
-  it('la pide si se ha movido más de 300 m o han pasado 2 min', () => {
-    expect(shouldRefreshRoute({ from, to, at: 0 }, { lat: 37.885, lon: -4.77 }, to, 1000)).toBe(true);
-    expect(shouldRefreshRoute({ from, to, at: 0 }, from, to, 121_000)).toBe(true);
+
+  it('la recalcula al salirse de la ruta, pero no más de una vez cada 20 s', () => {
+    expect(shouldRefreshRoute({ to, at: 0 }, to, 10_000, 500)).toBe(false);
+    expect(shouldRefreshRoute({ to, at: 0 }, to, 25_000, 500)).toBe(true);
+  });
+
+  it('la renueva cada 5 min', () => {
+    expect(shouldRefreshRoute({ to, at: 0 }, to, 301_000, 0)).toBe(true);
+  });
+});
+
+describe('routeProgress', () => {
+  // Ruta recta hacia el norte: 3 tramos de unos 111 m.
+  const route = {
+    distanceM: 333,
+    durationS: 60,
+    path: [
+      [37.0, -4.0],
+      [37.001, -4.0],
+      [37.002, -4.0],
+      [37.003, -4.0],
+    ] as [number, number][],
+  };
+
+  it('al empezar queda toda la ruta', () => {
+    const p = routeProgress(route, { lat: 37.0, lon: -4.0 });
+    expect(p.remainingM).toBe(333);
+    expect(p.remainingS).toBe(60);
+    expect(p.offRouteM).toBe(0);
+    expect(p.path).toHaveLength(4);
+  });
+
+  it('a mitad de camino queda lo que falta y el tiempo baja igual', () => {
+    const p = routeProgress(route, { lat: 37.002, lon: -4.0 });
+    expect(p.remainingM).toBe(111);
+    expect(p.remainingS).toBe(20);
+    expect(p.path).toEqual([
+      [37.002, -4.0],
+      [37.003, -4.0],
+    ]);
+  });
+
+  it('dice cuánto se ha salido de la ruta', () => {
+    const p = routeProgress(route, { lat: 37.001, lon: -3.995 });
+    expect(p.offRouteM).toBeGreaterThan(400);
   });
 });
