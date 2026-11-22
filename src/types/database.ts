@@ -270,6 +270,41 @@ export type Database = {
         };
         Relationships: [];
       };
+      memories: {
+        Row: {
+          id: string;
+          session_id: string;
+          user_id: string;
+          photo_path: string;
+          caption: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          user_id: string;
+          photo_path: string;
+          caption?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          session_id?: string;
+          user_id?: string;
+          photo_path?: string;
+          caption?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'memories_session_id_fkey';
+            columns: ['session_id'];
+            isOneToOne: false;
+            referencedRelation: 'sessions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       expenses: {
         Row: {
           id: string;

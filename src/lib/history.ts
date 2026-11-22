@@ -46,6 +46,8 @@ export type HistoryTrip = {
   car: HistoryCar;
   driverName: string;
   iDrove: boolean;
+  /** Mi papel en el viaje: conductor, copiloto o pasajero. */
+  myRole: string;
   destinationName: string | null;
   distanceM: number;
   durationS: number;
@@ -103,6 +105,7 @@ export function buildHistory({ myId, sessions, members, metrics, expenses, payme
         car: session.car,
         driverName: driver?.name ?? 'el conductor',
         iDrove: driver?.userId === myId,
+        myRole: people.find((member) => member.userId === myId)?.role ?? 'pasajero',
         destinationName: session.destinationName,
         distanceM,
         durationS: metric?.duration_s ?? 0,

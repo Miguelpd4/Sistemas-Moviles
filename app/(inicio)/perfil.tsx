@@ -3,7 +3,11 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText, Avatar, Badge, Button, EmptyState, Glow, Screen, ScreenHeader, type IconName } from '@/components/ui';
+import { MyMemories } from '@/components/perfil/MyMemories';
+import { StatsCard } from '@/components/perfil/StatsCard';
 import { useAuth } from '@/hooks/useAuth';
+import { useHistory } from '@/hooks/useHistory';
+import { useStats } from '@/hooks/useStats';
 import { radius, spacing, useStyles, useTheme, type Palette, type ThemePreference } from '@/theme';
 
 const APPEARANCE: readonly { value: ThemePreference; label: string; icon: IconName }[] = [
@@ -13,13 +17,16 @@ const APPEARANCE: readonly { value: ThemePreference; label: string; icon: IconNa
 ];
 
 /**
- * Perfil: quién eres, la apariencia de la app y, en el Sprint 4, los recuerdos
- * (historial, estadísticas y muro de fotos). En desarrollo muestra las pruebas técnicas.
+ * Perfil: quién eres, tus estadísticas y tus recuerdos (las fotos de tus viajes durante 7 días,
+ * #34), la apariencia de la app y las pruebas técnicas.
  */
 export default function PerfilScreen() {
   const { colors, preference, setPreference } = useTheme();
   const styles = useStyles(makeStyles);
-  const { profile, isAnonymous } = useAuth();
+  const { profile, isAnonymous, user } = useAuth();
+  const myId = user?.id ?? null;
+  const { trips, totals } = useHistory(myId);
+  const { stats } = useStats(myId, trips);
   const name = profile?.display_name || 'Sin nombre todavía';
 
   return (
@@ -43,6 +50,16 @@ export default function PerfilScreen() {
           </AppText>
         ) : null}
       </View>
+
+      {myId !== null && totals && totals.trips > 0 && stats ? <StatsCard totals={totals} stats={stats} /> : null}
+      {myId !== null && trips !== null && trips.length === 0 ? (
+        <EmptyState
+          icon="stats-chart-outline"
+          title="Tus estadísticas"
+          description="Cuando termines tu primer viaje verás aquí tus kilómetros, el CO₂ ahorrado, tus juegos y tu música."
+        />
+      ) : null}
+      {myId !== null ? <MyMemories myId={myId} /> : null}
 
       <View style={styles.section}>
         <AppText variant="heading" accessibilityRole="header">
@@ -72,12 +89,6 @@ export default function PerfilScreen() {
           El Modo conductor siempre es oscuro para no deslumbrar.
         </AppText>
       </View>
-
-      <EmptyState
-        icon="images-outline"
-        title="Tus recuerdos"
-        description="Viajes, estadísticas y las fotos de cada viaje durante 7 días. Llega en el Sprint 4."
-      />
 
       {isAnonymous ? (
         <Button label="¿Conduces? Registra tu coche" variant="ghost" icon="car-sport-outline" onPress={() => router.push('/mi-coche')} />

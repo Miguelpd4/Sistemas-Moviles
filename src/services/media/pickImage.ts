@@ -7,13 +7,15 @@ type Options = {
   camera?: boolean;
   /** Recorte cuadrado (avatares). */
   square?: boolean;
+  /** Dejar recortar la foto antes de usarla (las fotos de recuerdos van tal cual). */
+  edit?: boolean;
 };
 
 /** Abre la galería o la cámara y devuelve la uri de la imagen elegida, o null si se cancela. */
-export async function pickImage({ camera = false, square = true }: Options = {}): Promise<string | null> {
+export async function pickImage({ camera = false, square = true, edit = true }: Options = {}): Promise<string | null> {
   const options: ImagePicker.ImagePickerOptions = {
     mediaTypes: ['images'],
-    allowsEditing: true,
+    allowsEditing: edit,
     aspect: square ? [1, 1] : [4, 3],
     quality: 0.6,
   };
