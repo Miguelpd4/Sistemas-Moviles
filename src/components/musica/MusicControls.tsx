@@ -36,18 +36,23 @@ function MusicControlsBase({ isPlaying, onRestart, onTogglePlay, onNext }: Props
       disabled={busy}
       hitSlop={6}
       onPress={onPress}
+      // Como un reproductor de música: ⏮ y ⏭ solo con el icono; ⏸/▶ en un círculo del color del texto.
       style={({ pressed }) => [
         main ? styles.main : styles.side,
-        {
-          backgroundColor: main ? (pressed ? colors.primaryPressed : colors.primary) : pressed ? colors.surfaceStrong : colors.surface,
-          borderColor: main ? colors.primary : colors.border,
-        },
+        main ? { backgroundColor: colors.text } : null,
+        pressed ? styles.pressed : null,
       ]}
     >
       {busy ? (
-        <ActivityIndicator color={main ? colors.textOnPrimary : colors.primary} />
+        <ActivityIndicator color={main ? colors.background : colors.textSecondary} />
       ) : (
-        <Ionicons name={icon} size={main ? 30 : 22} color={main ? colors.textOnPrimary : colors.text} />
+        <Ionicons
+          name={icon}
+          size={main ? 28 : 30}
+          color={main ? colors.background : colors.textTertiary}
+          // El triángulo de ▶ se ve descentrado: un poco a la derecha.
+          style={main && icon === 'play' ? styles.playNudge : undefined}
+        />
       )}
     </Pressable>
   );
@@ -68,16 +73,11 @@ function MusicControlsBase({ isPlaying, onRestart, onTogglePlay, onNext }: Props
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.lg },
-  side: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  main: { width: 64, height: 64, borderRadius: radius.pill, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xl },
+  side: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
+  main: { width: 56, height: 56, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  pressed: { opacity: 0.6 },
+  playNudge: { marginLeft: 3 },
 });
 
 export const MusicControls = memo(MusicControlsBase);

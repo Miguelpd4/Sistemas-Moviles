@@ -4,10 +4,13 @@ import { useEffect, useState, type ComponentProps } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { CarHero } from '@/components/coche/CarHero';
-import { AppText, Avatar, Badge, Button, Glow, Notice, Screen, ScreenHeader } from '@/components/ui';
+import { SettlementCard } from '@/components/pagos/SettlementCard';
+import { AppText, Avatar, Badge, Button, Notice, Screen, ScreenHeader } from '@/components/ui';
+import { useAuth } from '@/hooks/useAuth';
+import { useTripMoney } from '@/hooks/useTripMoney';
 import { errorMessage } from '@/lib/errors';
 import { formatDuration, formatEuros, formatKm } from '@/lib/format';
-import { fuelCostCents, splitEqually } from '@/lib/split';
+import { tripMoney } from '@/lib/tripMoney';
 import { getSessionMembers, getSessionWithCar, type SessionWithCar } from '@/services/supabase/sessions';
 import { getTripMetrics, type TripMetrics } from '@/services/supabase/trip';
 import { radius, spacing, useStyles, useTheme, type Palette } from '@/theme';
@@ -16,8 +19,8 @@ import type { SessionMember } from '@/types/session';
 type MciName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 /**
- * Resumen del viaje, primera versión (Sprint 2): distancia, tiempo, quién iba y la gasolina.
- * El reparto con pagos, la canción del viaje y el ganador llegan en el Sprint 3.
+ * Resumen del viaje: distancia, tiempo, quién iba y el reparto de los gastos con quién paga a quién
+ * (#25). La canción del viaje y el ganador de los juegos llegan más adelante.
  */
 export default function ResumenScreen() {
   const { colors } = useTheme();
@@ -27,6 +30,9 @@ export default function ResumenScreen() {
   const [members, setMembers] = useState<SessionMember[]>([]);
   const [metrics, setMetrics] = useState<TripMetrics | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+  const myId = user?.id ?? null;
+  const money = useTripMoney(sessionId ?? null, session?.status === 'finalizada');
 
   useEffect(() => {
     if (!sessionId) return;
@@ -46,8 +52,10 @@ export default function ResumenScreen() {
 
   const distance = metrics?.distance_m ?? 0;
   const seconds = metrics?.duration_s ?? 0;
-  const cost = session?.fuelPriceEurL ? fuelCostCents(distance, session.consumptionL100km, session.fuelPriceEurL) : 0;
-  const share = members.length > 0 ? Math.max(...Object.values(splitEqually(cost, members.map((member) => member.user_id)))) : 0;
+  const summary =
+    money.expenses !== null && money.payments !== null
+      ? tripMoney(money.expenses, money.payments, members.map((member) => member.user_id), myId)
+      : null;
   const started = session?.startedAt !== null;
 
   return (
@@ -66,19 +74,11 @@ export default function ResumenScreen() {
             <Stat icon="map-marker-distance" label="Distancia" value={formatKm(distance)} />
             <Stat icon="timer-outline" label="Duración" value={formatDuration(seconds)} />
             <Stat icon="account-group" label="Personas" value={String(members.length)} />
-            <Stat icon="gas-station" label="Gasolina" value={formatEuros(cost)} />
+            <Stat icon="gas-station" label="Gasolina" value={summary ? formatEuros(summary.fuelCents) : '…'} />
           </View>
 
-          <View style={styles.share}>
-            <Glow cy={0.9} />
-            <AppText color={colors.textSecondary}>A cada uno le toca (a partes iguales)</AppText>
-            <AppText variant="hero" color={colors.primaryText}>
-              {formatEuros(share)}
-            </AppText>
-            <AppText variant="caption" color={colors.textTertiary} style={styles.center}>
-              Los pagos, los peajes y el parking llegan en la próxima versión.
-            </AppText>
-          </View>
+          {money.error ? <Notice message={money.error} /> : null}
+          {summary ? <SettlementCard money={summary} people={members} myId={myId} /> : null}
 
           <View style={styles.people}>
             <AppText variant="title">Quién iba</AppText>
@@ -121,16 +121,6 @@ const makeStyles = (c: Palette) =>
   StyleSheet.create({
     grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm + 4 },
     stat: { flexBasis: '47%', flexGrow: 1, padding: spacing.md, borderRadius: radius.lg, gap: 4, backgroundColor: c.surface },
-    share: {
-      alignItems: 'center',
-      gap: spacing.xs,
-      padding: spacing.lg,
-      borderRadius: radius.lg,
-      backgroundColor: c.surfaceRaised,
-      borderWidth: 1,
-      borderColor: c.border,
-      overflow: 'hidden',
-    },
     center: { textAlign: 'center' },
     people: { gap: spacing.md },
     avatars: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },

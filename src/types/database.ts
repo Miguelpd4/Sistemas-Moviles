@@ -270,6 +270,72 @@ export type Database = {
         };
         Relationships: [];
       };
+      expenses: {
+        Row: {
+          id: string;
+          session_id: string;
+          paid_by: string;
+          kind: string;
+          description: string | null;
+          amount_cents: number;
+          receipt_path: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          paid_by: string;
+          kind: string;
+          description?: string | null;
+          amount_cents: number;
+          receipt_path?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          session_id?: string;
+          paid_by?: string;
+          kind?: string;
+          description?: string | null;
+          amount_cents?: number;
+          receipt_path?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      payments: {
+        Row: {
+          id: string;
+          session_id: string;
+          from_user: string;
+          to_user: string;
+          amount_cents: number;
+          status: string;
+          paid_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          from_user: string;
+          to_user: string;
+          amount_cents: number;
+          status?: string;
+          paid_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          session_id?: string;
+          from_user?: string;
+          to_user?: string;
+          amount_cents?: number;
+          status?: string;
+          paid_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       queue_votes: {
         Row: {
           queue_id: string;
@@ -504,6 +570,8 @@ export type SessionRow = Tables<'sessions'>;
 export type SessionMemberRow = Tables<'session_members'>;
 export type MusicQueueRow = Tables<'music_queue'>;
 export type QueueVoteRow = Tables<'queue_votes'>;
+export type ExpenseRow = Tables<'expenses'>;
+export type PaymentRow = Tables<'payments'>;
 export type TripMetricsRow = Tables<'trip_metrics'>;
 export type GameRoundRow = Tables<'game_rounds'>;
 export type GameAnswerRow = Tables<'game_answers'>;
