@@ -111,7 +111,10 @@ function createRoom(sessionId: string, identity: RoomIdentity): Room {
     .on('broadcast', { event: 'ahora_suena' }, ({ payload }) =>
       emitter.emit('ahora_suena', payload as BroadcastEvents['ahora_suena']),
     )
-    .on('broadcast', { event: 'ronda' }, ({ payload }) => emitter.emit('ronda', payload as BroadcastEvents['ronda']));
+    .on('broadcast', { event: 'ronda' }, ({ payload }) => emitter.emit('ronda', payload as BroadcastEvents['ronda']))
+    .on('broadcast', { event: 'control_musica' }, ({ payload }) =>
+      emitter.emit('control_musica', payload as BroadcastEvents['control_musica']),
+    );
 
   void (async () => {
     try {

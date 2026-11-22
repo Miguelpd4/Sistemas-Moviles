@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { errorMessage } from '@/lib/errors';
-import { isPlayable, nextTrack, playerAction, resumeOffsetMs } from '@/lib/queue';
+import { canControlMusic, isPlayable, nextTrack, playerAction, resumeOffsetMs } from '@/lib/queue';
 import { markFinished, markPlaying, markSkipped, type QueueRow } from '@/services/supabase/queue';
 
 import { useSession } from './useSession';
@@ -26,7 +26,7 @@ export type HostPlayerState = {
  * marca cada una como sonando o terminada y avisa a la sala de lo que suena.
  */
 export function useHostPlayer(queue: QueueState, player: YouTubeController, enabled: boolean): HostPlayerState {
-  const { send } = useSession();
+  const { send, on, members } = useSession();
   const [error, setError] = useState<string | null>(null);
 
   const queueRef = useRef(queue);
@@ -108,19 +108,43 @@ export function useHostPlayer(queue: QueueState, player: YouTubeController, enab
   }, [enabled, tick]);
 
   // Aviso a la sala de lo que suena (la barra de progreso de Música).
-  useEffect(() => {
-    if (!enabled) return;
-    const timer = setInterval(() => {
+  const announce = useCallback(
+    (isPlaying?: boolean) => {
       const snapshot = player.snapshot();
       send('ahora_suena', {
         queueId: queueRef.current.nowPlaying?.id ?? null,
         progressMs: snapshot.progressMs,
         durationMs: snapshot.durationMs,
-        isPlaying: snapshot.state === 'playing',
+        isPlaying: isPlaying ?? snapshot.state === 'playing',
       });
-    }, BROADCAST_MS);
+    },
+    [player, send],
+  );
+  useEffect(() => {
+    if (!enabled) return;
+    const timer = setInterval(() => announce(), BROADCAST_MS);
     return () => clearInterval(timer);
-  }, [enabled, send, player]);
+  }, [enabled, announce]);
+
+  // Principio, pausa y seguir desde Música (#60): solo el conductor o el copiloto.
+  const membersRef = useRef(members);
+  useEffect(() => {
+    membersRef.current = members;
+  }, [members]);
+  useEffect(() => {
+    if (!enabled) return;
+    return on('control_musica', ({ action, userId }) => {
+      if (!canControlMusic(membersRef.current, userId) || queueRef.current.nowPlaying === null) return;
+      if (action === 'pause') player.pause();
+      else if (action === 'play') player.play();
+      else {
+        player.seek(0);
+        player.play();
+      }
+      // Se avisa enseguida para que la barra y el botón de todos cambien sin esperar 5 s.
+      announce(action !== 'pause');
+    });
+  }, [enabled, on, player, announce]);
 
   return { error };
 }

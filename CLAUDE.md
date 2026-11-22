@@ -86,7 +86,7 @@ Realtime:
 - Un solo canal privado por sala y móvil, `sala:<session_id>` (`src/services/supabase/roomChannel.ts`), compartido por la Sala y el Modo conductor. Lo reparte `SessionProvider`; los componentes escuchan con `useSession().on(...)` o `useBroadcast(...)`. No crear canales sueltos con `supabase.channel()` en las pantallas.
 - Solo entran los miembros que están dentro (políticas de `realtime.messages`). Quien espera aprobación usa su canal privado `entrada:<session_id>:<user_id>:…`.
 - Presence: quién está conectado.
-- Broadcast (no se guarda): reacciones, "pedir parada", canción que suena ahora.
+- Broadcast (no se guarda): reacciones, "pedir parada", canción que suena ahora, órdenes de música del copiloto (`control_musica`).
 - Cambios en BD: miembros, cola y votos, encuestas, rondas de juego, puntos GPS, fin del viaje.
 
 ## Reglas de código
@@ -122,10 +122,10 @@ Sprints de una semana (lunes a domingo). Si algo se retrasa se recorta el Sprint
 ## Estado actual
 
 - Sprint 1 y Sprint 2 hechos en código y en `main`, incluidos los juegos musicales (#20 turnos de DJ, #21 «Adivina la canción», #22 «¿Quién la ha puesto?»). El detalle, lo que falta probar y la lista de la demo están en `docs/sprints/sprint-1.md` y `docs/sprints/sprint-2.md`. El plan completo de los 4 sprints está en el documento compartido del equipo.
-- Supabase (proyecto `dytieuiyvrsejwvcvirh`) tiene aplicadas todas las migraciones de `supabase/migrations/` (la última, `20261122095446_musica_youtube.sql`) y desplegadas las funciones `fuel-price` y `youtube-search`. `spotify-search` sigue desplegada pero ya no se usa: se puede borrar en Supabase, junto con los secretos `SPOTIFY_CLIENT_ID` y `SPOTIFY_CLIENT_SECRET`.
+- Supabase (proyecto `dytieuiyvrsejwvcvirh`) tiene aplicadas todas las migraciones de `supabase/migrations/` (la última, `20261122100826_saltar_cancion.sql`) y desplegadas las funciones `fuel-price` y `youtube-search`. `spotify-search` sigue desplegada pero ya no se usa: se puede borrar en Supabase, junto con los secretos `SPOTIFY_CLIENT_ID` y `SPOTIFY_CLIENT_SECRET`.
 - Una migración aplicada con el conector de Supabase queda registrada con la hora de aplicación: renombrar el fichero a esa versión para que `supabase db push` no la repita.
 - `npm run typecheck`, `npm run lint` y `npm test` pasan sin errores; mantenedlos así antes de abrir cada PR. Las plantillas de issue (historia y fallo) y de PR están en `.github/`.
-- Música con YouTube: prueba técnica en #54 (Perfil → Prueba de YouTube) y la sala entera en #57: cola, Música, turnos de DJ, Modo conductor (`MusicPlayer`, `useYouTubeController`, `useHostPlayer`) y «Adivina la canción» (`useSongQuizHost`). Configuración en `docs/youtube-google-cloud.md`.
+- Música con YouTube: prueba técnica en #54 (Perfil → Prueba de YouTube) y la sala entera en #57: cola, Música, turnos de DJ, Modo conductor (`MusicPlayer`, `useYouTubeController`, `useHostPlayer`) y «Adivina la canción» (`useSongQuizHost`). El conductor y el copiloto controlan la música desde Música (#60): ⏮ y ⏸/▶ con el aviso `control_musica` y ⏭ con la RPC `skip_song`. Solo suena un Modo conductor a la vez (`usePlayerOwnership`). Configuración en `docs/youtube-google-cloud.md`.
 - Para cerrar el Sprint 2 falta probar en móviles reales (la música con YouTube, GPS en coche y los juegos musicales), ensayar la demo, la retrospectiva y la etiqueta `v0.2-sprint2` con el APK.
 
 ## Compilar en Windows

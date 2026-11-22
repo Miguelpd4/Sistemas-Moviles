@@ -15,6 +15,7 @@ export type YouTubeController = {
   load: (videoId: string, startSeconds: number) => void;
   play: () => void;
   pause: () => void;
+  seek: (seconds: number) => void;
   /** Estado para la pantalla (cambia poco: no incluye el progreso). */
   state: PlayerState;
   /** Último error del reproductor (vídeo que no deja reproducirse, etc.). */
@@ -62,10 +63,14 @@ export function useYouTubeController(): YouTubeController {
   );
   const play = useCallback(() => playerRef.current?.send({ type: 'play' }), []);
   const pause = useCallback(() => playerRef.current?.send({ type: 'pause' }), []);
+  const seek = useCallback((seconds: number) => {
+    snapshotRef.current = { ...snapshotRef.current, progressMs: Math.round(seconds * 1000) };
+    playerRef.current?.send({ type: 'seek', seconds });
+  }, []);
   const snapshot = useCallback(() => snapshotRef.current, []);
 
   return useMemo(
-    () => ({ playerRef, onEvent, snapshot, load, play, pause, state, error }),
-    [onEvent, snapshot, load, play, pause, state, error],
+    () => ({ playerRef, onEvent, snapshot, load, play, pause, seek, state, error }),
+    [onEvent, snapshot, load, play, pause, seek, state, error],
   );
 }

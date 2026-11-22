@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { DjRoundPanel } from '@/components/musica/DjRoundPanel';
@@ -13,7 +13,7 @@ import { useSession } from '@/hooks/useSession';
 import { errorMessage } from '@/lib/errors';
 import { readGuessWhoPayload } from '@/lib/games/quienLaPuso';
 import { vibrate } from '@/services/device/feedback';
-import { addDjSong, addToQueue, removeFromQueue } from '@/services/supabase/queue';
+import { addDjSong, addToQueue, removeFromQueue, skipSong } from '@/services/supabase/queue';
 import { spacing, useTheme } from '@/theme';
 import type { YouTubeTrack } from '@/types/youtube';
 
@@ -25,7 +25,7 @@ const MAX_PER_PERSON = 3;
  */
 export default function MusicaScreen() {
   const { colors } = useTheme();
-  const { sessionId, members, myId } = useSession();
+  const { sessionId, members, myId, isAdmin, send } = useSession();
   const { nowPlaying, upcoming, myCount, loading, error, reload } = useQueue();
   const { round } = useActiveRound();
   const dj = useDjRound();
@@ -43,6 +43,24 @@ export default function MusicaScreen() {
     },
     [sessionId, myId, djRoundId],
   );
+
+  // Principio, pausa o seguir y siguiente (#60): solo el conductor y el copiloto.
+  const nowPlayingId = nowPlaying?.id ?? null;
+  const controls = useMemo(() => {
+    if (!isAdmin || myId === null || nowPlayingId === null) return null;
+    return {
+      onRestart: () => send('control_musica', { action: 'restart', userId: myId }),
+      onTogglePlay: (playing: boolean) => send('control_musica', { action: playing ? 'pause' : 'play', userId: myId }),
+      onNext: async () => {
+        setActionError(null);
+        try {
+          await skipSong(nowPlayingId);
+        } catch (err) {
+          setActionError(errorMessage(err));
+        }
+      },
+    };
+  }, [isAdmin, myId, nowPlayingId, send]);
 
   const remove = useCallback(async (id: string) => {
     setActionError(null);
@@ -68,7 +86,14 @@ export default function MusicaScreen() {
       {loading && nowPlaying === null && upcoming.length === 0 ? (
         <ActivityIndicator color={colors.primary} />
       ) : (
-        <NowPlayingCard item={nowPlaying} addedBy={addedBy} mystery={mystery} members={members.length} onError={setActionError} />
+        <NowPlayingCard
+          item={nowPlaying}
+          addedBy={addedBy}
+          mystery={mystery}
+          members={members.length}
+          onError={setActionError}
+          controls={controls}
+        />
       )}
 
       {error ? (

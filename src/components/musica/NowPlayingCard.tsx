@@ -8,6 +8,7 @@ import { radius, spacing, useStyles, useTheme, type Palette } from '@/theme';
 import type { SessionMember } from '@/types/session';
 
 import { AlbumArt } from './AlbumArt';
+import { MusicControls } from './MusicControls';
 import { SkipVoteButton } from './SkipVoteButton';
 
 type Props = {
@@ -17,6 +18,12 @@ type Props = {
   mystery?: boolean;
   members: number;
   onError: (message: string) => void;
+  /** Conductor o copiloto (#60): principio, pausa o seguir y siguiente. null para los pasajeros. */
+  controls?: {
+    onRestart: () => void;
+    onTogglePlay: (isPlaying: boolean) => void;
+    onNext: () => Promise<void>;
+  } | null;
 };
 
 const clock = (ms: number) => {
@@ -25,10 +32,10 @@ const clock = (ms: number) => {
 };
 
 /** Lo que suena ahora: carátula grande, quién la puso, barra de progreso y votar para saltar. */
-export function NowPlayingCard({ item, addedBy, mystery = false, members, onError }: Props) {
+export function NowPlayingCard({ item, addedBy, mystery = false, members, onError, controls = null }: Props) {
   const { colors } = useTheme();
   const styles = useStyles(makeStyles);
-  const { progressMs, durationMs } = useNowPlaying(item?.id ?? null, item?.duration_ms ?? 0);
+  const { progressMs, durationMs, isPlaying, known } = useNowPlaying(item?.id ?? null, item?.duration_ms ?? 0);
 
   if (item === null) {
     return (
@@ -86,6 +93,16 @@ export function NowPlayingCard({ item, addedBy, mystery = false, members, onErro
           </AppText>
         </View>
       </View>
+
+      {controls ? (
+        <MusicControls
+          // Hasta que llegue el primer aviso del Modo conductor, se supone que suena.
+          isPlaying={known ? isPlaying : true}
+          onRestart={controls.onRestart}
+          onTogglePlay={controls.onTogglePlay}
+          onNext={controls.onNext}
+        />
+      ) : null}
 
       <View style={styles.bottom}>
         {mystery ? (
