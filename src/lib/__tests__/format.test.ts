@@ -1,4 +1,4 @@
-import { formatDuration, formatEuros, formatKm } from '../format';
+import { formatClock, formatDuration, formatEuros, formatKm } from '../format';
 
 describe('formatEuros', () => {
   it('formatea céntimos con coma decimal y símbolo de euro', () => {
@@ -38,5 +38,15 @@ describe('formatDuration', () => {
     expect(formatDuration(59)).toBe('59 s');
     expect(formatDuration(480)).toBe('8 min');
     expect(formatDuration(3900)).toBe('1 h 05 min');
+  });
+});
+
+describe('formatClock', () => {
+  it('pone los milisegundos como reloj de canción', () => {
+    expect(formatClock(0)).toBe('0:00');
+    expect(formatClock(9_999)).toBe('0:09');
+    expect(formatClock(186_000)).toBe('3:06');
+    expect(formatClock(3_723_000)).toBe('1:02:03');
+    expect(formatClock(-5)).toBe('0:00');
   });
 });
