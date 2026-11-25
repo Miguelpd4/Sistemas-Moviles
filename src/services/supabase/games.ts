@@ -1,4 +1,5 @@
 import { AppError, toAppError } from '@/lib/errors';
+import type { RankingRow } from '@/lib/ranking';
 import type { GameAnswerRow, GameRoundRow, Json } from '@/types/database';
 
 import { supabase } from './client';
@@ -118,4 +119,21 @@ export async function getSolution(roundId: string): Promise<Json | null> {
   const { data, error } = await supabase.from('game_round_secrets').select('solution').eq('round_id', roundId).maybeSingle();
   if (error) throw new AppError('No se ha podido cargar la solución.', { details: error });
   return data?.solution ?? null;
+}
+
+/**
+ * #33 · Clasificación del viaje: puntos de todas las rondas puntuadas (reveladas) por persona,
+ * también quien lleva 0. La suma la hace la RPC trip_ranking (solo para los del viaje).
+ */
+export async function getTripRanking(sessionId: string): Promise<RankingRow[]> {
+  const { data, error } = await supabase.rpc('trip_ranking', { p_session_id: sessionId });
+  if (error) throw toAppError(error, 'No se ha podido cargar la clasificación.');
+  return data.map((row) => ({
+    userId: row.user_id,
+    name: row.display_name,
+    avatarKind: row.avatar_kind,
+    avatarValue: row.avatar_value,
+    points: row.points,
+    roundsWon: row.rounds_won,
+  }));
 }
