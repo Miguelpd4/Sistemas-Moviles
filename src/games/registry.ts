@@ -67,3 +67,9 @@ export const GAMES: readonly GameInfo[] = [
 export function gameInfo(id: string): GameInfo | undefined {
   return GAMES.find((game) => game.id === id);
 }
+
+/** Nombre para enseñar de cualquier juego, también los musicales que no están en el lobby. */
+export function gameDisplayName(id: string): string {
+  if (id === 'dj') return 'Turnos de DJ';
+  return gameInfo(id)?.name ?? 'un juego';
+}
