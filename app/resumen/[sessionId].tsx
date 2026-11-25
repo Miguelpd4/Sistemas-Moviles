@@ -4,11 +4,14 @@ import { useEffect, useMemo, useState, type ComponentProps } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { CarHero } from '@/components/coche/CarHero';
+import { TripRanking } from '@/components/juegos/TripRanking';
 import { MemoryWall } from '@/components/recuerdos/MemoryWall';
+import { TripWrapped, type WrappedPerson } from '@/components/wrapped/TripWrapped';
 import { SettlementCard } from '@/components/pagos/SettlementCard';
 import { AppText, Avatar, Badge, Button, Notice, Screen, ScreenHeader } from '@/components/ui';
 import { useAuth } from '@/hooks/useAuth';
 import { useTripMoney } from '@/hooks/useTripMoney';
+import { useTripRanking } from '@/hooks/useTripRanking';
 import { errorMessage } from '@/lib/errors';
 import { formatDuration, formatEuros, formatKm } from '@/lib/format';
 import { tripMoney } from '@/lib/tripMoney';
@@ -21,7 +24,8 @@ type MciName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 /**
  * Resumen del viaje: distancia, tiempo, quién iba y el reparto de los gastos con quién paga a quién
- * (#25), y el muro de fotos del viaje, que se borra 7 días después (#34).
+ * (#25), el ranking final de los juegos (#33), el COPI Wrapped con la música del viaje (#35) y el
+ * muro de fotos del viaje, que se borra 7 días después (#34).
  */
 export default function ResumenScreen() {
   const { colors } = useTheme();
@@ -29,6 +33,8 @@ export default function ResumenScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const [session, setSession] = useState<SessionWithCar | null>(null);
   const [members, setMembers] = useState<SessionMember[]>([]);
+  // Todos los que llegaron a entrar (también quien se bajó antes), para el DJ del Wrapped.
+  const [everyone, setEveryone] = useState<SessionMember[]>([]);
   const [metrics, setMetrics] = useState<TripMetrics | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
@@ -43,6 +49,7 @@ export default function ResumenScreen() {
         if (!active) return;
         setSession(nextSession);
         setMembers(nextMembers.filter((member) => member.status === 'dentro'));
+        setEveryone(nextMembers);
         setMetrics(nextMetrics);
       })
       .catch((err: unknown) => active && setError(errorMessage(err, 'No se ha podido cargar el resumen.')));
@@ -59,6 +66,14 @@ export default function ResumenScreen() {
       : null;
   const started = session?.startedAt !== null;
   const names = useMemo(() => new Map(members.map((member) => [member.user_id, member.display_name])), [members]);
+  const people = useMemo(
+    () =>
+      new Map<string, WrappedPerson>(
+        everyone.map((member) => [member.user_id, { name: member.display_name, avatarKind: member.avatar_kind, avatarValue: member.avatar_value }]),
+      ),
+    [everyone],
+  );
+  const ranking = useTripRanking(sessionId ?? null);
 
   return (
     <Screen edges={['top', 'bottom']}>
@@ -83,6 +98,9 @@ export default function ResumenScreen() {
           {summary ? (
             <SettlementCard money={summary} people={members} myId={myId} pay={{ payees: money.payees, onMarkPaid: money.markPaid }} />
           ) : null}
+
+          {started ? <TripRanking standings={ranking.standings} error={ranking.error} final={session.status === 'finalizada'} /> : null}
+          {started ? <TripWrapped sessionId={session.id} people={people} /> : null}
 
           <View style={styles.people}>
             <AppText variant="title">Quién iba</AppText>

@@ -1,4 +1,5 @@
 import { AppError, toAppError } from '@/lib/errors';
+import type { MusicEntry } from '@/lib/wrapped';
 import type { MusicQueueRow } from '@/types/database';
 import type { YouTubeTrack } from '@/types/youtube';
 
@@ -112,4 +113,18 @@ export async function markSkipped(id: string): Promise<void> {
     .eq('id', id)
     .eq('status', 'en_cola');
   if (error) throw toAppError(error, 'No se ha podido actualizar la cola.');
+}
+
+/**
+ * #35 · Toda la música de un viaje para el COPI Wrapped: lo que sonó, se saltó o se quedó en la
+ * cola (RLS: solo los del viaje). El cálculo está en src/lib/wrapped.ts.
+ */
+export async function getTripMusic(sessionId: string): Promise<MusicEntry[]> {
+  const { data, error } = await supabase
+    .from('music_queue')
+    .select('session_id, track_id, title, artist, album_art_url, duration_ms, added_by, status, started_at, ended_at')
+    .eq('session_id', sessionId)
+    .order('started_at', { ascending: true, nullsFirst: false });
+  if (error) throw toAppError(error, 'No se ha podido cargar la música del viaje.');
+  return data;
 }
