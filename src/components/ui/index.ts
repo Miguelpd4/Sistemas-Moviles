@@ -1,12 +1,14 @@
 export { AppText } from './AppText';
 export { Avatar } from './Avatar';
 export { Badge } from './Badge';
+export { BrandMark } from './BrandMark';
 export { Button } from './Button';
 export { Card } from './Card';
 export { Chip } from './Chip';
 export { EmptyState } from './EmptyState';
 export { FormSection } from './FormSection';
 export { IconTile, type MciName, type Tint } from './IconTile';
+export { LiveDot } from './LiveDot';
 export { Glow } from './Glow';
 export { Notice } from './Notice';
 export { PlaceholderScreen } from './PlaceholderScreen';
