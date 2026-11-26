@@ -1,3 +1,4 @@
+export { Appear } from './Appear';
 export { AppText } from './AppText';
 export { Avatar } from './Avatar';
 export { Badge } from './Badge';

@@ -10,7 +10,7 @@ import {
   SeatStep,
   WelcomeStep,
 } from '@/components/entrada/JoinSteps';
-import { Button, EmptyState, Screen, ScreenHeader } from '@/components/ui';
+import { Appear, Button, EmptyState, Screen, ScreenHeader } from '@/components/ui';
 import { useJoinFlow } from '@/hooks/useJoinFlow';
 import { normalizeCarCode } from '@/lib/carCode';
 import { RPC_MESSAGES } from '@/lib/errors';
@@ -103,5 +103,11 @@ function JoinFlow({ code }: { code: string }) {
       break;
   }
 
-  return <Screen>{content}</Screen>;
+  // Cada paso entra con una transición suave; «enviando» sigue en el mismo paso que «asiento».
+  const stepKey = state.step === 'enviando' ? 'asiento' : state.step;
+  return (
+    <Screen>
+      <Appear key={stepKey}>{content}</Appear>
+    </Screen>
+  );
 }

@@ -70,6 +70,7 @@ docs/                    # requisitos, diseño, actas de sprint
 - Fuente Inter incluida en `assets/fonts` (títulos con Inter Display). Con fuentes propias el grosor lo da `fontFamily` (tokens `fonts` y `typography`), no `fontWeight`.
 - El coche es el protagonista: foto propia > foto del modelo (Wikipedia) > silueta de su color, y el código del coche se muestra como matrícula europea (`src/components/coche/`).
 - Modo conductor: siempre oscuro (`ForceDarkTheme`), tipografía muy grande, acentos naranja.
+- Sistema de diseño (`src/theme/tokens.ts`, `src/components/ui/`): el naranja (`primary`) es solo para acciones; los acentos secundarios (`colors.accents`: azul, violeta, turquesa, rosa, ámbar, verde) dan identidad a juegos, estadísticas y accesos, y `info`/`warning` a los avisos. Tipografía `stat` para cifras y `overline` para antetítulos; margen lateral `spacing.gutter`. Piezas comunes: `PressableScale` (encoge al pulsar, respeta reducir movimiento, vibración ligera), `Button` (píldora), `IconTile`, `StatTile` (rejillas de dos columnas), `SectionHeader`, `Skeleton`/`SkeletonCards` (cargas), `Notice` con `action` (Reintentar), `EmptyState` con `tint`, `LiveDot`, `BrandMark` y `Appear` (entrada suave). Cada juego tiene su color en `src/games/registry.ts` (`tint`).
 - Accesibilidad: soportar texto dinámico, etiquetas de accesibilidad y contraste suficiente.
 
 ## Base de datos (Supabase)

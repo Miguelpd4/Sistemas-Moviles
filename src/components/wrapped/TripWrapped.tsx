@@ -3,13 +3,12 @@ import { memo } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { AlbumArt } from '@/components/musica/AlbumArt';
-import { AppText, Avatar, Glow, Notice } from '@/components/ui';
+import { Appear, AppText, Avatar, Glow, Notice } from '@/components/ui';
 import { useTripWrapped } from '@/hooks/useTripWrapped';
 import { joinNames } from '@/lib/ranking';
 import { listenedMinutes, type Wrapped } from '@/lib/wrapped';
 import { fonts, radius, spacing, useStyles, useTheme, type Palette } from '@/theme';
 
-import { Appear } from './Appear';
 
 export type WrappedPerson = { name: string; avatarKind: string; avatarValue: string };
 

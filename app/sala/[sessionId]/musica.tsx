@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { DjRoundPanel } from '@/components/musica/DjRoundPanel';
 import { NowPlayingCard } from '@/components/musica/NowPlayingCard';
 import { QueueList } from '@/components/musica/QueueList';
 import { SearchBox } from '@/components/musica/SearchBox';
-import { AppText, Badge, Button, Notice, Screen, ScreenHeader } from '@/components/ui';
+import { AppText, Badge, EmptyState, Notice, Screen, ScreenHeader, Skeleton } from '@/components/ui';
 import { useActiveRound } from '@/hooks/useActiveRound';
 import { useDjRound } from '@/hooks/useDjRound';
 import { useQueue } from '@/hooks/useQueue';
@@ -14,7 +14,7 @@ import { errorMessage } from '@/lib/errors';
 import { readGuessWhoPayload } from '@/lib/games/quienLaPuso';
 import { vibrate } from '@/services/device/feedback';
 import { addDjSong, addToQueue, removeFromQueue, skipSong } from '@/services/supabase/queue';
-import { spacing, useTheme } from '@/theme';
+import { spacing } from '@/theme';
 import type { YouTubeTrack } from '@/types/youtube';
 
 const MAX_PER_PERSON = 3;
@@ -24,7 +24,6 @@ const MAX_PER_PERSON = 3;
  * La música suena en el móvil del conductor; aquí solo se busca, se añade y se vota.
  */
 export default function MusicaScreen() {
-  const { colors } = useTheme();
   const { sessionId, members, myId, isAdmin, send } = useSession();
   const { nowPlaying, upcoming, myCount, loading, error, reload } = useQueue();
   const { round } = useActiveRound();
@@ -84,7 +83,7 @@ export default function MusicaScreen() {
       <ScreenHeader eyebrow="Suena en el coche" title="Música" />
 
       {loading && nowPlaying === null && upcoming.length === 0 ? (
-        <ActivityIndicator color={colors.primary} />
+        <Skeleton height={340} rounded={28} />
       ) : (
         <NowPlayingCard
           item={nowPlaying}
@@ -96,12 +95,7 @@ export default function MusicaScreen() {
         />
       )}
 
-      {error ? (
-        <View style={styles.block}>
-          <Notice message={error} />
-          <Button label="Reintentar" variant="secondary" icon="refresh" onPress={() => void reload()} />
-        </View>
-      ) : null}
+      {error ? <Notice message={error} action={{ label: 'Reintentar', onPress: () => void reload() }} /> : null}
       {actionError ? <Notice message={actionError} /> : null}
 
       <DjRoundPanel dj={dj} />
@@ -124,7 +118,12 @@ export default function MusicaScreen() {
           {upcoming.length > 0 ? <Badge label={String(upcoming.length)} /> : null}
         </View>
         {upcoming.length === 0 ? (
-          <AppText color={colors.textSecondary}>La cola está vacía. ¡Pon la primera!</AppText>
+          <EmptyState
+            icon="musical-notes"
+            tint="pink"
+            title="La cola está vacía"
+            description="Busca arriba una canción y ponla: sonará en el coche cuando acabe la actual."
+          />
         ) : (
           <QueueList items={upcoming} members={members} myId={myId} onRemove={(id) => void remove(id)} />
         )}
