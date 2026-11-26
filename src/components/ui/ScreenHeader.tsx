@@ -28,7 +28,10 @@ export function ScreenHeader({ title, eyebrow, subtitle, back = false, right }: 
           accessibilityRole="button"
           accessibilityLabel="Volver"
           onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
-          style={({ pressed }) => [styles.back, { backgroundColor: pressed ? colors.surfaceStrong : colors.surface }]}
+          style={({ pressed }) => [
+            styles.back,
+            { backgroundColor: pressed ? colors.surfaceStrong : colors.surface, borderColor: colors.border },
+          ]}
           hitSlop={8}
         >
           <Ionicons name="chevron-back" size={22} color={colors.text} />
@@ -37,7 +40,7 @@ export function ScreenHeader({ title, eyebrow, subtitle, back = false, right }: 
       <View style={styles.row}>
         <View style={styles.text}>
           {eyebrow ? (
-            <AppText variant="label" color={colors.primaryText}>
+            <AppText variant="overline" color={colors.primaryText}>
               {eyebrow}
             </AppText>
           ) : null}
@@ -54,7 +57,7 @@ export function ScreenHeader({ title, eyebrow, subtitle, back = false, right }: 
 
 const styles = StyleSheet.create({
   wrapper: { gap: spacing.md, marginBottom: spacing.sm, marginTop: spacing.sm },
-  back: { width: 44, height: 44, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  back: { width: 44, height: 44, borderRadius: radius.pill, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  text: { flex: 1, gap: 2 },
+  text: { flex: 1, gap: spacing.xs },
 });

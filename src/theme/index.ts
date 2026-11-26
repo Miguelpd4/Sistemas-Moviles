@@ -12,7 +12,7 @@ export {
   spacing,
   typography,
 } from './tokens';
-export type { Palette, TypographyVariant } from './tokens';
+export type { Accent, AccentName, Palette, TypographyVariant } from './tokens';
 export {
   ForceDarkTheme,
   ThemeProvider,

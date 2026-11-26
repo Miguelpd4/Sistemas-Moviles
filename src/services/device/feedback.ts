@@ -4,11 +4,13 @@ import { Platform } from 'react-native';
 
 /** Vibración y voz (S2-04, S2-07). En la web no hay vibración; la voz usa la del navegador. */
 
-export function vibrate(kind: 'tap' | 'success' | 'warning' = 'tap'): void {
+export function vibrate(kind: 'light' | 'tap' | 'success' | 'warning' = 'tap'): void {
   if (Platform.OS === 'web') return;
   const run =
-    kind === 'tap'
-      ? Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+    kind === 'light'
+      ? Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+      : kind === 'tap'
+        ? Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
       : Haptics.notificationAsync(kind === 'success' ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning);
   run.catch(() => undefined);
 }
