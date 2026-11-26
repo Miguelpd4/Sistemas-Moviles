@@ -1,15 +1,16 @@
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { AddExpenseSheet } from '@/components/pagos/AddExpenseSheet';
 import { ExpenseList } from '@/components/pagos/ExpenseList';
 import { SettlementCard } from '@/components/pagos/SettlementCard';
-import { AppText, Button, Card, Notice, Screen, ScreenHeader } from '@/components/ui';
+import { TripEstimate } from '@/components/pagos/TripEstimate';
+import { Button, Notice, Screen, ScreenHeader, SectionHeader, SkeletonCards } from '@/components/ui';
 import { useSession } from '@/hooks/useSession';
 import { useTripMoney } from '@/hooks/useTripMoney';
 import { tripMoney } from '@/lib/tripMoney';
 import { removeExpense } from '@/services/supabase/payments';
-import { spacing, useTheme } from '@/theme';
+import { spacing } from '@/theme';
 
 /**
  * Pestaña Pagos. Durante el viaje: los peajes y el parking que va pagando cada uno, con la foto del
@@ -17,7 +18,6 @@ import { spacing, useTheme } from '@/theme';
  * Bizum (#27).
  */
 export default function PagosScreen() {
-  const { colors } = useTheme();
   const { sessionId, session, members, myId } = useSession();
   const finished = session?.status === 'finalizada';
   const { expenses, payments, payees, error, markPaid, reload } = useTripMoney(sessionId, true);
@@ -38,7 +38,7 @@ export default function PagosScreen() {
       <ScreenHeader eyebrow="Gastos del viaje" title="Pagos" />
       {error ? <Notice message={error} /> : null}
       {expenses === null || payments === null ? (
-        error ? null : <ActivityIndicator color={colors.primary} style={styles.loader} />
+        error ? null : <SkeletonCards count={2} />
       ) : finished ? (
         <>
           <SettlementCard
@@ -48,21 +48,15 @@ export default function PagosScreen() {
             pay={{ payees, onMarkPaid: markPaid }}
           />
           <View style={styles.block}>
-            <AppText variant="heading">Gastos del viaje</AppText>
+            <SectionHeader title="Gastos del viaje" />
             <ExpenseList expenses={expenses} names={names} myId={myId} />
           </View>
         </>
       ) : (
         <>
-          <Card>
-            <AppText variant="heading">Cómo se reparte</AppText>
-            <AppText color={colors.textSecondary}>
-              Al finalizar, la gasolina (km × consumo × precio) y los peajes o el parking se reparten a partes iguales entre
-              todos, conductor incluido. Quien haya pagado algo, lo recupera en el reparto.
-            </AppText>
-          </Card>
+          <TripEstimate extrasCents={extras.reduce((sum, expense) => sum + expense.amount_cents, 0)} />
           <View style={styles.block}>
-            <AppText variant="heading">Peajes, parking y otros</AppText>
+            <SectionHeader title="Peajes y parking" aside={extras.length > 0 ? String(extras.length) : undefined} />
             <ExpenseList expenses={extras} names={names} myId={myId} onRemove={remove} />
             {myId !== null ? <Button label="Añadir peaje o parking" icon="add" onPress={() => setAdding(true)} /> : null}
           </View>
@@ -85,6 +79,5 @@ export default function PagosScreen() {
 }
 
 const styles = StyleSheet.create({
-  loader: { marginTop: spacing.lg },
-  block: { gap: spacing.sm + 2 },
+  block: { gap: spacing.sm + 4 },
 });

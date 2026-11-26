@@ -1,8 +1,8 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useMemo, type ComponentProps } from 'react';
+import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { AppText, Badge, Glow, Screen, ScreenHeader } from '@/components/ui';
+import { AppText, Badge, Glow, Screen, ScreenHeader, StatTile } from '@/components/ui';
 import { MemoryWall } from '@/components/recuerdos/MemoryWall';
 import { TripMapCard } from '@/components/viaje/TripMapCard';
 import { useNow } from '@/hooks/useNow';
@@ -12,8 +12,6 @@ import { formatDuration, formatEuros, formatKm } from '@/lib/format';
 import { fuelCostCents, splitEqually } from '@/lib/split';
 import { averageSpeedKmh, formatFuelPrice } from '@/lib/tripStatus';
 import { radius, spacing, useStyles, useTheme, type Palette } from '@/theme';
-
-type MciName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 /**
  * Pestaña Viaje: mapa en vivo con el destino, la ruta y la hora de llegada (#29), y distancia,
@@ -75,10 +73,10 @@ export default function ViajeScreen() {
       </View>
 
       <View style={styles.grid}>
-        <Stat icon="timer-outline" label="Tiempo" value={formatDuration(seconds)} />
-        <Stat icon="speedometer" label="Velocidad media" value={speed !== null ? `${speed} km/h` : '—'} />
-        <Stat icon="gas-station" label="Combustible" value={price !== null ? `${formatFuelPrice(price)} €/L` : '—'} />
-        <Stat icon="account-group" label="En el coche" value={String(members.length)} />
+        <StatTile icon="timer-outline" tint="violet" label="Tiempo" value={formatDuration(seconds)} />
+        <StatTile icon="speedometer" tint="blue" label="Velocidad media" value={speed !== null ? `${speed} km/h` : '—'} />
+        <StatTile icon="gas-station" tint="amber" label="Combustible" value={price !== null ? `${formatFuelPrice(price)} €/L` : '—'} />
+        <StatTile icon="account-group" tint="teal" label="En el coche" value={String(members.length)} />
       </View>
 
       <View style={[styles.cost, { backgroundColor: colors.surface }]}>
@@ -107,22 +105,6 @@ export default function ViajeScreen() {
   );
 }
 
-function Stat({ icon, label, value }: { icon: MciName; label: string; value: string }) {
-  const { colors } = useTheme();
-  const styles = useStyles(makeStyles);
-  return (
-    <View style={[styles.stat, { backgroundColor: colors.surface }]} accessible accessibilityLabel={`${label}: ${value}`}>
-      <MaterialCommunityIcons name={icon} size={22} color={colors.primary} />
-      <AppText variant="title" numberOfLines={1} adjustsFontSizeToFit>
-        {value}
-      </AppText>
-      <AppText variant="caption" color={colors.textSecondary}>
-        {label}
-      </AppText>
-    </View>
-  );
-}
-
 const makeStyles = (c: Palette) =>
   StyleSheet.create({
     waiting: {
@@ -148,7 +130,6 @@ const makeStyles = (c: Palette) =>
     },
     big: { fontSize: 64, lineHeight: 68, letterSpacing: -2.5, marginTop: spacing.sm },
     grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm + 4 },
-    stat: { flexBasis: '47%', flexGrow: 1, padding: spacing.md, borderRadius: radius.lg, gap: 4 },
     cost: { padding: spacing.md + 4, borderRadius: radius.lg, gap: spacing.sm },
     costRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
     flex: { flex: 1 },
