@@ -1,9 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { CarVisual } from '@/components/coche/CarVisual';
-import { AppText, Avatar, Badge } from '@/components/ui';
+import { AppText, Avatar, Badge, PressableScale } from '@/components/ui';
 import { formatDuration, formatEuros, formatKm } from '@/lib/format';
 import { tripDateLabel, type HistoryTrip } from '@/lib/history';
 import { radius, spacing, useStyles, useTheme, type Palette } from '@/theme';
@@ -30,12 +30,14 @@ function TripCardBase({ trip, onPress }: Props) {
   const more = trip.companions.length - shown.length;
 
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={`${title}, ${tripDateLabel(trip.date)}. ${who}. ${formatKm(trip.distanceM)}. Te tocó ${formatEuros(trip.myShareCents)}${status ? `. ${status.label}` : ''}`}
       accessibilityHint="Abre el resumen del viaje"
       onPress={() => onPress(trip.id)}
-      style={({ pressed }) => [styles.card, pressed && { backgroundColor: colors.surfaceStrong }]}
+      scaleTo={0.985}
+      style={styles.card}
+      pressedStyle={{ backgroundColor: colors.surfaceStrong }}
     >
       <View style={styles.top}>
         <View style={styles.car}>
@@ -84,7 +86,7 @@ function TripCardBase({ trip, onPress }: Props) {
           {status ? <Badge label={status.label} tone={status.tone} /> : null}
         </View>
       </View>
-    </Pressable>
+    </PressableScale>
   );
 }
 

@@ -1,78 +1,76 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { AppText } from '@/components/ui';
+import { AppText, Button, Glow, IconTile, LiveDot, PressableScale } from '@/components/ui';
 import type { CurrentTrip } from '@/services/supabase/sessions';
-import { radius, spacing, useTheme } from '@/theme';
+import { radius, spacing, useStyles, useTheme, type Palette } from '@/theme';
 
-/** «Viaje en curso en el coche de X»: lleva a la sala o al Modo conductor (S1-08). */
+/**
+ * «Viaje en marcha»: la tarjeta más visible de Inicio cuando estás en un viaje. Lleva a la sala o
+ * al Modo conductor (S1-08).
+ */
 export function CurrentTripCard({ trip }: { trip: CurrentTrip }) {
   const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
   const isDriver = trip.role === 'conductor';
   const live = trip.status === 'en_curso';
   const title = isDriver ? trip.carName : `En el coche de ${trip.driverName}`;
   const action = isDriver ? 'Volver al Modo conductor' : 'Volver a la sala';
+  const detail = isDriver
+    ? live
+      ? 'Conduces tú. Tu copiloto lleva la sala.'
+      : 'Esperando a que suban los pasajeros.'
+    : live
+      ? `Vas en ${trip.carName}. Música, juegos y el reparto, en la sala.`
+      : `${trip.carName} aún no ha salido.`;
 
   const open = () => {
-    if (isDriver) {
-      router.push({ pathname: '/conductor', params: { sessionId: trip.sessionId } });
-    } else {
-      router.push({ pathname: '/sala/[sessionId]', params: { sessionId: trip.sessionId } });
-    }
+    if (isDriver) router.push({ pathname: '/conductor', params: { sessionId: trip.sessionId } });
+    else router.push({ pathname: '/sala/[sessionId]', params: { sessionId: trip.sessionId } });
   };
 
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={`${live ? 'Viaje en marcha' : 'Viaje abierto'}. ${title}. ${action}`}
       onPress={open}
-      style={({ pressed }) => [styles.card, { backgroundColor: pressed ? colors.primaryPressed : colors.primary }]}
+      haptic
+      scaleTo={0.985}
+      style={styles.card}
     >
-      <View style={styles.pulse}>
-        <View style={[styles.dot, { backgroundColor: colors.textOnPrimary }]} />
+      <Glow cy={0} cx={0.9} />
+      <View style={styles.top}>
+        <View style={styles.status}>
+          <LiveDot color={live ? colors.success : colors.warning} />
+          <AppText variant="overline" color={live ? colors.success : colors.warning}>
+            {live ? 'En marcha' : 'Viaje abierto'}
+          </AppText>
+        </View>
+        <IconTile icon={isDriver ? 'steering' : 'seat-passenger'} size={40} />
       </View>
-      <View style={styles.text}>
-        <AppText variant="caption" color={colors.textOnPrimary}>
-          {live ? 'Viaje en marcha' : 'Viaje abierto'}
-        </AppText>
-        <AppText variant="heading" color={colors.textOnPrimary} numberOfLines={1}>
-          {title}
-        </AppText>
-        <AppText variant="bodyStrong" color={colors.textOnPrimary}>
-          {action}
-        </AppText>
+      <AppText variant="title" numberOfLines={2}>
+        {title}
+      </AppText>
+      <AppText color={colors.textSecondary}>{detail}</AppText>
+      <View style={styles.action} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <Button label={action} icon="arrow-forward" size="lg" />
       </View>
-      <View style={[styles.arrow, { backgroundColor: colors.textOnPrimary }]}>
-        <Ionicons name="arrow-forward" size={22} color={colors.primary} />
-      </View>
-    </Pressable>
+    </PressableScale>
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-  },
-  pulse: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dot: { width: 10, height: 10, borderRadius: 5 },
-  text: { flex: 1, gap: 2 },
-  arrow: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
+    card: {
+      gap: spacing.sm,
+      padding: spacing.lg - 4,
+      borderRadius: radius.lg,
+      backgroundColor: c.surfaceRaised,
+      borderWidth: 1.5,
+      borderColor: c.primary,
+      overflow: 'hidden',
+    },
+    top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    status: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+    action: { marginTop: spacing.sm },
+  });

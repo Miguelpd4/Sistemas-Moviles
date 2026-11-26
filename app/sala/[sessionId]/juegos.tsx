@@ -9,13 +9,16 @@ import { GuessWhoSong } from '@/components/juegos/GuessWhoSong';
 import { PlateEntry, PlateFinders, PlateRanking, type PlateRow } from '@/components/juegos/PlateHunt';
 import { OptionList, type GameOption } from '@/components/juegos/OptionList';
 import { ResultsBars } from '@/components/juegos/ResultsBars';
+import { TripRanking } from '@/components/juegos/TripRanking';
 import { AppText, Avatar, Badge, Button, Glow, Notice, Screen, ScreenHeader } from '@/components/ui';
 import { gameInfo } from '@/games/registry';
 import { useActiveRound } from '@/hooks/useActiveRound';
+import { useBroadcast } from '@/hooks/useBroadcast';
 import { useNow } from '@/hooks/useNow';
 import { useQueue } from '@/hooks/useQueue';
 import { useSession } from '@/hooks/useSession';
 import { useTripMetrics } from '@/hooks/useTripMetrics';
+import { useTripRanking } from '@/hooks/useTripRanking';
 import { AppError, errorMessage } from '@/lib/errors';
 import { SONG_QUIZ_SECONDS, readSongQuizPayload } from '@/lib/games/adivinaCancion';
 import { BINGO_SECONDS, makeCards, readBingoAnswer, readBingoCards, readBingoResult } from '@/lib/games/bingo';
@@ -68,7 +71,7 @@ function readPayload(payload: Json | undefined): ProbablePayload {
 /**
  * Pestaña Juegos: el motor de rondas con «¿Quién es más probable que…?» (S2-09), «Adivina la
  * canción» (#21), «¿Quién la ha puesto?» (#22), «Bingo de carretera», «Trivial del camino» y
- * «Cazamatrículas» (#48).
+ * «Cazamatrículas» (#48), con la clasificación general del viaje debajo (#33).
  * Todos responden a la vez, nadie ve las respuestas hasta el final y el resultado aparece en todas
  * las pantallas. El conductor no juega.
  */
@@ -92,6 +95,12 @@ export default function JuegosScreen() {
     setMyAnswerLocal,
   } = useActiveRound();
   const metrics = useTripMetrics();
+  // Ranking general (#33): se recalcula cada vez que se revela una ronda (con sus puntos ya puestos).
+  const [rankingKey, setRankingKey] = useState(0);
+  useBroadcast('round', (change) => {
+    if (change.new.status === 'revelada') setRankingKey((key) => key + 1);
+  });
+  const ranking = useTripRanking(sessionId, rankingKey);
   const queue = useQueue();
   const [starting, setStarting] = useState<string | null>(null);
   // Lo que he elegido va con su ronda: en una ronda nueva se olvida solo.
@@ -424,7 +433,10 @@ export default function JuegosScreen() {
       {loading && round === null ? (
         <ActivityIndicator color={colors.primary} />
       ) : round === null ? (
-        <GameLobby players={members.length} starting={starting} onStart={(game) => void start(game.id)} />
+        <>
+          <GameLobby players={members.length} starting={starting} onStart={(game) => void start(game.id)} />
+          <TripRanking standings={ranking.standings} error={ranking.error} />
+        </>
       ) : active ? (
         <View style={styles.block}>
           <View style={styles.question}>
@@ -633,6 +645,7 @@ export default function JuegosScreen() {
               Quien lanzó el juego decide si seguís.
             </AppText>
           )}
+          <TripRanking standings={ranking.standings} error={ranking.error} />
         </View>
       )}
       <View style={styles.bottomSpace} />

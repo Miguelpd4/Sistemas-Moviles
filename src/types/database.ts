@@ -468,6 +468,8 @@ export type Database = {
           created_by: string;
           created_at: string;
           ends_at: string | null;
+          /** #33 · Cuándo se reveló (y puntuó); null si se cerró a medias. */
+          revealed_at: string | null;
         };
         Insert: {
           id?: string;
@@ -563,6 +565,10 @@ export type Database = {
       skip_song: { Args: { p_queue_id: string }; Returns: undefined };
       mark_payment_paid: { Args: { p_payment_id: string }; Returns: undefined };
       bingo_mark: { Args: { p_round_id: string; p_item: string }; Returns: Json };
+      trip_ranking: {
+        Args: { p_session_id: string };
+        Returns: { user_id: string; display_name: string; avatar_kind: string; avatar_value: string; points: number; rounds_won: number }[];
+      };
       submit_plate: { Args: { p_round_id: string; p_plate: string }; Returns: number };
       plate_matches: { Args: { p_challenge: Json; p_plate: string }; Returns: boolean };
       set_destination: {

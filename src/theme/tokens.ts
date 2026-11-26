@@ -11,6 +11,14 @@
  * - Texto blanco sobre `primary` solo en negrita y ≥ 17 px (texto grande).
  */
 
+/**
+ * Acentos secundarios: dan identidad a cada juego, estadística o estado informativo. El naranja
+ * (`primary`) sigue siendo el único color de acción; los acentos nunca van en botones principales.
+ * `solid` para iconos y rellenos, `soft` para fondos, `text` para texto sobre el fondo de la app.
+ */
+export type AccentName = 'blue' | 'violet' | 'teal' | 'pink' | 'amber' | 'green';
+export type Accent = { solid: string; soft: string; text: string };
+
 export type Palette = {
   background: string;
   /** Tarjetas sobre el fondo. */
@@ -46,13 +54,19 @@ export type Palette = {
   qrLight: string;
   /** Interior del coche visto desde arriba (plano de asientos). */
   cabin: string;
+  /** Información neutra (consejos, datos) y avisos que no son error. */
+  info: string;
+  infoSoft: string;
+  warning: string;
+  warningSoft: string;
+  accents: Record<AccentName, Accent>;
 };
 
 export const darkColors: Palette = {
-  background: '#0E0F11',
-  surface: '#17181B',
-  surfaceRaised: '#1C1E22',
-  surfaceStrong: '#26282D',
+  background: '#0B0C0E',
+  surface: '#15161A',
+  surfaceRaised: '#1B1D21',
+  surfaceStrong: '#26282E',
   inverse: '#F5F4F2',
   inverseSoft: '#E4E2DE',
   text: '#F5F4F2',
@@ -69,13 +83,25 @@ export const darkColors: Palette = {
   successSoft: '#12301F',
   danger: '#FF6B63',
   dangerSoft: '#3A1513',
-  border: '#2A2C31',
+  border: '#26282D',
   borderStrong: '#3B3E45',
   overlay: 'rgba(0, 0, 0, 0.65)',
   shadow: '#000000',
   qrDark: '#000000',
   qrLight: '#FFFFFF',
   cabin: '#101113',
+  info: '#8DB5FF',
+  infoSoft: '#14213A',
+  warning: '#FFC95C',
+  warningSoft: '#36280B',
+  accents: {
+    blue: { solid: '#4C8DFF', soft: '#14213A', text: '#8DB5FF' },
+    violet: { solid: '#9B6BFF', soft: '#231737', text: '#BFA2FF' },
+    teal: { solid: '#2EC4B6', soft: '#0F2B29', text: '#6FE0D5' },
+    pink: { solid: '#FF5C9A', soft: '#3A1424', text: '#FF94BC' },
+    amber: { solid: '#FFB627', soft: '#36280B', text: '#FFC95C' },
+    green: { solid: '#3FD18A', soft: '#12301F', text: '#73E3AB' },
+  },
 };
 
 export const lightColors: Palette = {
@@ -106,6 +132,18 @@ export const lightColors: Palette = {
   qrDark: '#000000',
   qrLight: '#FFFFFF',
   cabin: '#EAE7E2',
+  info: '#1D4ED8',
+  infoSoft: '#E3ECFE',
+  warning: '#B45309',
+  warningSoft: '#FEF1DA',
+  accents: {
+    blue: { solid: '#2563EB', soft: '#E3ECFE', text: '#1D4ED8' },
+    violet: { solid: '#7C3AED', soft: '#EFE7FD', text: '#6D28D9' },
+    teal: { solid: '#0F9488', soft: '#DDF4F1', text: '#0F766E' },
+    pink: { solid: '#DB2777', soft: '#FCE4EF', text: '#BE185D' },
+    amber: { solid: '#D97706', soft: '#FEF1DA', text: '#B45309' },
+    green: { solid: '#16A34A', soft: '#DDF3E5', text: '#15803D' },
+  },
 };
 
 /** Matrícula europea (banda azul con la E de España, fondo blanco y letras negras). */
@@ -184,6 +222,10 @@ export const spacing = {
   lg: 24,
   xl: 32,
   xxl: 48,
+  /** Margen lateral de todas las pantallas. */
+  gutter: 20,
+  /** Separación entre secciones de una pantalla. */
+  section: 28,
 } as const;
 
 export const radius = {
@@ -217,10 +259,14 @@ export const typography = {
   display: { fontFamily: fonts.display, fontSize: 34, lineHeight: 38, letterSpacing: -1.1 },
   title: { fontFamily: fonts.display, fontSize: 26, lineHeight: 30, letterSpacing: -0.7 },
   heading: { fontFamily: fonts.bold, fontSize: 18, lineHeight: 23, letterSpacing: -0.3 },
+  /** Cifras protagonistas de tarjetas y estadísticas (km, euros, puntos). */
+  stat: { fontFamily: fonts.black, fontSize: 28, lineHeight: 32, letterSpacing: -0.9 },
   body: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 23, letterSpacing: -0.1 },
   bodyStrong: { fontFamily: fonts.semibold, fontSize: 16, lineHeight: 23, letterSpacing: -0.1 },
   label: { fontFamily: fonts.semibold, fontSize: 14, lineHeight: 19, letterSpacing: 0 },
   caption: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 18, letterSpacing: 0 },
+  /** Antetítulo en mayúsculas: «EN MARCHA», «TU COCHE». */
+  overline: { fontFamily: fonts.bold, fontSize: 12, lineHeight: 16, letterSpacing: 1.2, textTransform: 'uppercase' },
   /** Letras de la matrícula. */
   plate: { fontFamily: fonts.black, fontSize: 22, lineHeight: 26, letterSpacing: 2 },
 } as const;

@@ -1,14 +1,15 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { CarHero } from '@/components/coche/CarHero';
 import { MemberRow } from '@/components/sala/MemberRow';
 import { PendingList } from '@/components/sala/PendingList';
+import { RoomShortcuts } from '@/components/sala/RoomShortcuts';
 import { RoomSettings } from '@/components/sala/RoomSettings';
 import { SeatMap, type SeatOccupant } from '@/components/sala/SeatMap';
-import { AppText, Badge, Button, Glow, Notice, Screen, Sheet } from '@/components/ui';
+import { AppText, Badge, Button, Glow, Notice, Screen, SectionHeader, Sheet, Skeleton } from '@/components/ui';
 import { useSession } from '@/hooks/useSession';
 import { errorMessage } from '@/lib/errors';
 import { leaveSession, setCopilot } from '@/services/supabase/sessions';
@@ -41,7 +42,8 @@ export default function SalaScreen() {
   if (loading && session === null) {
     return (
       <Screen>
-        <ActivityIndicator color={colors.primary} style={styles.loader} />
+        <Skeleton height={300} rounded={28} />
+        <Skeleton height={120} rounded={20} />
       </Screen>
     );
   }
@@ -118,6 +120,8 @@ export default function SalaScreen() {
         </CarHero>
       ) : null}
 
+      {session ? <RoomShortcuts /> : null}
+
       {error ? <Notice message={error} /> : null}
       {status === 'sin_conexion' ? <Notice tone="info" message="Reconectando con la sala…" /> : null}
       {status === 'sin_permiso' ? (
@@ -127,9 +131,7 @@ export default function SalaScreen() {
       {isAdmin ? <PendingList sessionId={sessionId} pending={pending} /> : null}
 
       <View style={styles.section}>
-        <AppText variant="title" accessibilityRole="header">
-          Quién va dónde
-        </AppText>
+        <SectionHeader overline={live ? 'En marcha' : 'Antes de salir'} title="Quién va dónde" />
         <SeatMap
           seats={session?.seats ?? 5}
           taken={Object.keys(occupants).map(Number)}
@@ -139,9 +141,7 @@ export default function SalaScreen() {
       </View>
 
       <View style={styles.section}>
-        <AppText variant="title" accessibilityRole="header">
-          En el coche
-        </AppText>
+        <SectionHeader title="En el coche" aside={`${connected} de ${members.length} conectados`} />
         {members.map((member) => (
           <MemberRow
             key={member.user_id}
@@ -206,7 +206,6 @@ export default function SalaScreen() {
 
 const makeStyles = (c: Palette) =>
   StyleSheet.create({
-    loader: { marginTop: spacing.xxl },
     driving: {
       alignItems: 'center',
       gap: spacing.md,

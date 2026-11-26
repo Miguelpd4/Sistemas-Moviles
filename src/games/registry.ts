@@ -2,6 +2,7 @@ import type MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIco
 import type { ComponentProps } from 'react';
 
 import type { GameId } from '@/services/supabase/games';
+import type { AccentName } from '@/theme';
 
 /** Juegos de la sala (S2-09): «probable», «Adivina la canción» (#21), «¿Quién la ha puesto?» (#22), «Bingo de carretera», «Trivial del camino» y «Cazamatrículas» (#48). */
 export type GameInfo = {
@@ -11,6 +12,10 @@ export type GameInfo = {
   icon: ComponentProps<typeof MaterialCommunityIcons>['name'];
   minPlayers: number;
   available: boolean;
+  /** Color de identidad del juego (acento secundario). */
+  tint: AccentName;
+  /** Etiqueta corta: duración o tipo de partida. */
+  tag: string;
 };
 
 export const GAMES: readonly GameInfo[] = [
@@ -21,6 +26,8 @@ export const GAMES: readonly GameInfo[] = [
     icon: 'account-question',
     minPlayers: 3,
     available: true,
+    tint: 'violet',
+    tag: '30 s por pregunta',
   },
   {
     id: 'adivina_cancion',
@@ -29,6 +36,8 @@ export const GAMES: readonly GameInfo[] = [
     icon: 'music-circle',
     minPlayers: 2,
     available: true,
+    tint: 'pink',
+    tag: 'Musical',
   },
   {
     id: 'quien_la_puso',
@@ -37,6 +46,8 @@ export const GAMES: readonly GameInfo[] = [
     icon: 'account-music',
     minPlayers: 3,
     available: true,
+    tint: 'teal',
+    tag: 'Musical',
   },
   {
     id: 'bingo',
@@ -45,6 +56,8 @@ export const GAMES: readonly GameInfo[] = [
     icon: 'grid',
     minPlayers: 2,
     available: true,
+    tint: 'amber',
+    tag: 'Hasta 15 min',
   },
   {
     id: 'trivial',
@@ -53,6 +66,8 @@ export const GAMES: readonly GameInfo[] = [
     icon: 'map-marker-question',
     minPlayers: 2,
     available: true,
+    tint: 'blue',
+    tag: 'Con Wikipedia',
   },
   {
     id: 'matriculas',
@@ -61,9 +76,17 @@ export const GAMES: readonly GameInfo[] = [
     icon: 'card-text',
     minPlayers: 2,
     available: true,
+    tint: 'green',
+    tag: '3 min',
   },
 ];
 
 export function gameInfo(id: string): GameInfo | undefined {
   return GAMES.find((game) => game.id === id);
+}
+
+/** Nombre para enseñar de cualquier juego, también los musicales que no están en el lobby. */
+export function gameDisplayName(id: string): string {
+  if (id === 'dj') return 'Turnos de DJ';
+  return gameInfo(id)?.name ?? 'un juego';
 }

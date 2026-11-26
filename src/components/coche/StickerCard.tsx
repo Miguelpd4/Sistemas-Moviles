@@ -1,11 +1,12 @@
 import * as Clipboard from 'expo-clipboard';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import QRCode from 'react-native-qrcode-svg';
 
-import { AppText, Button, Card } from '@/components/ui';
+import { AppText, Button, Card, IconTile } from '@/components/ui';
 import { env } from '@/config/env';
 import { carStickerUrl } from '@/lib/carCode';
-import { radius, spacing, useTheme } from '@/theme';
+import { darkColors, radius, spacing, useTheme } from '@/theme';
 
 import { LicensePlate } from './LicensePlate';
 
@@ -29,14 +30,27 @@ export function StickerCard({ code }: { code: string }) {
   };
 
   return (
-    <Card>
-      <View style={styles.head}>
-        <AppText variant="heading" accessibilityRole="header">
-          Tu pegatina
-        </AppText>
-        <AppText color={colors.textSecondary}>Graba esta dirección en la pegatina NFC y pégala en el coche.</AppText>
+    <Card tone="raised">
+      <View style={styles.titleRow}>
+        <IconTile icon="nfc-variant" tint="teal" size={44} />
+        <View style={styles.head}>
+          <AppText variant="heading" accessibilityRole="header">
+            Tu pegatina y tu QR
+          </AppText>
+          <AppText variant="label" color={colors.textSecondary}>
+            Graba esta dirección en la pegatina NFC. Quien no tenga NFC puede escanear el QR.
+          </AppText>
+        </View>
       </View>
-      <View style={styles.plate}>
+      <View style={styles.codes}>
+        <View
+          style={styles.qr}
+          accessible
+          accessibilityRole="image"
+          accessibilityLabel={`Código QR del coche ${code} para entrar en el viaje`}
+        >
+          <QRCode value={url} size={168} color={darkColors.qrDark} backgroundColor={darkColors.qrLight} ecl="M" />
+        </View>
         <LicensePlate code={code} size="lg" />
       </View>
       <View style={[styles.url, { backgroundColor: colors.background }]}>
@@ -70,8 +84,11 @@ export function StickerCard({ code }: { code: string }) {
 }
 
 const styles = StyleSheet.create({
-  head: { gap: 2 },
-  plate: { alignItems: 'center', paddingVertical: spacing.md },
+  titleRow: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
+  head: { flex: 1, gap: 2 },
+  codes: { alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
+  // El QR siempre en negro sobre blanco con margen: lo lee cualquier cámara en los dos temas.
+  qr: { backgroundColor: darkColors.qrLight, padding: spacing.md, borderRadius: radius.md },
   url: { borderRadius: radius.sm, padding: spacing.md },
   steps: { gap: spacing.sm, marginTop: spacing.xs },
   step: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' },
